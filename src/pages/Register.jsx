@@ -7,7 +7,7 @@ import Footer from "../components/Footer";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
-import { auth, db } from "../firebase/firebase";
+import { auth, db } from "../firebase/Firebase.jsx";
 
 function Register() {
   const navigate = useNavigate();

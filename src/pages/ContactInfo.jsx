@@ -5,7 +5,7 @@ import Footer from "../components/Footer";
 
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { auth, db } from "../firebase/firebase";
+import { auth, db } from "../firebase/Firebase.jsx";
 
 function ContactInfo() {
   const navigate = useNavigate();
