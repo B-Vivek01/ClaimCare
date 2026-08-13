@@ -6,7 +6,7 @@ import Footer from "../components/Footer";
 
 import { signInWithEmailAndPassword } from "firebase/auth";
 
-import { auth, db } from "../firebase/firebase";
+import { auth, db } from "../firebase/Firebase";
 import { doc, getDoc } from "firebase/firestore";
 
 function Login() {

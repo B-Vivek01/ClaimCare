@@ -3,7 +3,7 @@ import { Navigate } from "react-router-dom";
 
 import { onAuthStateChanged } from "firebase/auth";
 
-import { auth } from "../firebase/firebase";
+import { auth } from "../firebase/Firebase";
 
 function ProtectedRoute({ children }) {
   const [user, setUser] = useState(null);
