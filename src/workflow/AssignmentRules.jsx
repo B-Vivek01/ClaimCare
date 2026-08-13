@@ -11,7 +11,7 @@ import Footer from "../components/Footer";
 
 import {
   useWorkflow,
-} from "./WorkflowContext";
+} from "./WorkFlowContext";
 
 function AssignmentRules() {
   const {

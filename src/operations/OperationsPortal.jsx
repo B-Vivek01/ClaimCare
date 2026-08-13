@@ -7,7 +7,7 @@ import Footer from "../components/Footer";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { auth, db } from "../firebase/firebase";
+import { auth, db } from "../firebase/Firebase.jsx";
 
 import { onAuthStateChanged } from "firebase/auth";
 
