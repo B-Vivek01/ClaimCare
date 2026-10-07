@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { usePolicies } from "./PolicyContext";
 
@@ -129,11 +128,9 @@ function AddPolicy() {
 
     setSaving(true);
 
-    await new Promise((resolve) =>
-      setTimeout(resolve, 700)
-    );
+    try {
 
-    const newPolicy = addPolicy({
+    const newPolicy = await addPolicy({
       ...formData,
       premiumAmount: Number(
         formData.premiumAmount
@@ -143,12 +140,11 @@ function AddPolicy() {
       ),
     });
 
-    setSaving(false);
     setSuccess(true);
-
-    setTimeout(() => {
-      navigate(`/policies/${newPolicy.id}`);
-    }, 800);
+    navigate(`/policies/${newPolicy.id}`);
+    } catch (error) {
+      window.dispatchEvent(new CustomEvent('claimcare:data', { detail: { error: error.message } }));
+    } finally { setSaving(false); }
   };
 
   return (

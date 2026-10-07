@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
-import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { onAuthStateChanged } from "../backend/auth";
+import { doc, getDoc, updateDoc } from "../backend/profiles";
 
-import { auth, db } from "../firebase/Firebase.jsx";
+import { auth, db } from "../backend/session";
 
 function PersonalDetails() {
   const [user, setUser] = useState(null);

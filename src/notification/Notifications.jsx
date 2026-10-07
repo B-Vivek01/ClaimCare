@@ -21,6 +21,17 @@ function Notifications() {
   } = useNotification();
 
   const navigate = useNavigate();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const saveAction = async action => {
+    if (busy) return false;
+    setBusy(true); setError('');
+    try {
+      if (!await action()) throw new Error('Notification change could not be saved. Please retry.');
+      return true;
+    } catch (issue) { setError(issue.message); return false; }
+    finally { setBusy(false); }
+  };
 
   const [search, setSearch] =
     useState("");
@@ -55,10 +66,10 @@ function Notifications() {
       filter,
     ]);
 
-  const openNotification = (
+  const openNotification = async (
     notification
   ) => {
-    markAsRead(notification.id);
+    if (!await saveAction(() => markAsRead(notification.id))) return;
 
     if (notification.target) {
       navigate(notification.target);
@@ -67,6 +78,7 @@ function Notifications() {
 
   return (
     <main className="notification-page">
+      {error && <p role="alert">{error}</p>}
       <div className="notification-container">
 
         <div className="notification-header">
@@ -135,7 +147,8 @@ function Notifications() {
             {unreadCount > 0 && (
               <button
                 className="notification-primary-button"
-                onClick={markAllAsRead}
+                disabled={busy}
+                onClick={() => saveAction(markAllAsRead)}
               >
                 Mark All Read
               </button>
@@ -226,10 +239,12 @@ function Notifications() {
 
                   <button
                     className="notification-delete-button"
+                    disabled={busy}
+                    aria-label={`Delete notification: ${notification.title}`}
                     onClick={() =>
-                      deleteNotification(
+                      saveAction(() => deleteNotification(
                         notification.id
-                      )
+                      ))
                     }
                   >
                     ×

@@ -1,6 +1,6 @@
+import { storeFile, fileUrl } from "../data/files";
 import { useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { usePolicies } from "./PolicyContext";
 
@@ -34,70 +34,23 @@ function PolicyAttachments() {
   }
 
   const handleUpload = async (event) => {
-    const file = event.target.files?.[0];
-
-    if (!file) {
-      return;
-    }
-
-    setError("");
-    setSuccess(false);
-
-    if (file.size > 10 * 1024 * 1024) {
-      setError(
-        "File size must be 10 MB or less."
-      );
-
-      return;
-    }
-
-    setUploading(true);
-
-    await new Promise((resolve) =>
-      setTimeout(resolve, 800)
-    );
-
-    const attachment = {
-      id: `ATT-${Date.now()}`,
-
-      name: file.name,
-
-      type:
-        file.type ||
-        "application/octet-stream",
-
-      size: file.size,
-
-      url: URL.createObjectURL(file),
-    };
-
-    updateAttachments(id, [
-      ...(policy.attachments || []),
-      attachment,
-    ]);
-
-    setUploading(false);
-    setSuccess(true);
-
-    event.target.value = "";
+    const file=event.target.files?.[0];
+    if (!file) return;
+    event.target.value=''; setError(''); setSuccess(false); setUploading(true);
+    try {
+      const stored=await storeFile(file);
+      const saved=await updateAttachments(id,[...(policy.attachments || []),{id:`ATT-${crypto.randomUUID()}`,name:file.name,type:file.type,size:file.size,...stored}]);
+      if (!saved) throw new Error('Attachment could not be saved.');
+      setSuccess(true);
+    } catch (issue) {setError(issue.message || 'Upload failed.');}
+    finally {setUploading(false);}
   };
 
-  const handleDownload = (attachment) => {
-    if (!attachment.url) {
-      return;
-    }
-
-    const link =
-      document.createElement("a");
-
-    link.href = attachment.url;
-    link.download = attachment.name;
-
-    document.body.appendChild(link);
-
-    link.click();
-
-    document.body.removeChild(link);
+  const handleDownload = async (attachment) => {
+    try {
+      const link=document.createElement('a');
+      link.href=await fileUrl(attachment.storagePath,true); link.download=attachment.name; link.click();
+    } catch (issue) {setError(issue.message || 'Download failed.');}
   };
 
   const formatSize = (size) => {

@@ -1,5 +1,9 @@
+import { fileUrl } from "../data/files";
+import { useAuth } from "../auth/AuthContext";
 import {
+  useEffect,
   useState,
+  useRef,
 } from "react";
 
 import {
@@ -8,7 +12,6 @@ import {
   useParams,
 } from "react-router-dom";
 
-import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
 import {
@@ -16,6 +19,16 @@ import {
 } from "./DocumentContext";
 
 function DocumentDetails() {
+  const { profile, user } = useAuth();
+  const staff = ['admin','operations'].includes(profile?.role);
+  const [reviewReason,setReviewReason] = useState('');
+  const [reviewBusy,setReviewBusy] = useState(false);
+  const review = async status => {
+    if (reviewBusy || (status==='Rejected' && !reviewReason.trim())) return;
+    setReviewBusy(true);
+    await updateDocument(id,{reviewStatus:status,reviewReason:reviewReason.trim(),reviewedBy:user.uid,reviewedAt:new Date().toISOString()});
+    setReviewBusy(false);
+  };
   const { id } =
     useParams();
 
@@ -34,8 +47,20 @@ function DocumentDetails() {
         item.id === id
     );
 
-  const inputRef =
-    useState(null);
+  const inputRef = useRef(null);
+  const [previewUrl, setPreviewUrl] = useState('');
+  useEffect(() => {
+    let active = true;
+    setPreviewUrl('');
+    async function load() {
+      if (!document?.storagePath) return;
+      try { const url = await fileUrl(document.storagePath); if (active) setPreviewUrl(url); }
+      catch (error) { if (active) window.dispatchEvent(new CustomEvent('claimcare:data', { detail: { error: error.message } })); }
+    }
+    load();
+    const timer = setInterval(load, 240000);
+    return () => { active = false; clearInterval(timer); };
+  }, [document?.storagePath]);
 
   const [zoom, setZoom] =
     useState(1);
@@ -137,45 +162,33 @@ function DocumentDetails() {
       });
     };
 
-  const replaceFile =
-    (event) => {
-      const file =
-        event.target.files?.[0];
-
-      if (!file) {
-        return;
-      }
-
-      replaceDocument(
-        id,
-        file
-      );
+  const replaceFile = async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      event.target.value = '';
+      try { await replaceDocument(id, file); }
+      catch (error) { window.dispatchEvent(new CustomEvent('claimcare:data', { detail: { error: error.message || 'Replacement failed.' } })); }
     };
 
   const downloadDocument =
-    () => {
-      if (
-        !document.fileUrl
-      ) {
-        alert(
-          "This sample document does not have a local file attached."
-        );
-
-        return;
-      }
-
+    async (version = null) => {
+      try {
+      const storagePath=version?.storagePath || document.storagePath;
+      if (!storagePath) throw new Error('No uploaded file is linked to this document.');
+      const signedUrl=await fileUrl(storagePath,true);
       const link =
         window.document.createElement(
           "a"
         );
 
       link.href =
-        document.fileUrl;
+        signedUrl;
 
       link.download =
-        document.name;
+        version?.name || document.name;
 
       link.click();
+      } catch(error) {window.dispatchEvent(new CustomEvent('claimcare:data',{detail:{error:error.message}}));}
     };
 
   return (
@@ -214,6 +227,14 @@ function DocumentDetails() {
             </Link>
 
           </div>
+          {staff && <section className="document-detail-card">
+            <h2>Document review</h2>
+            <p>Status: {document.reviewStatus}. Malware scanning is not configured.</p>
+            <label htmlFor="review-reason">Review reason (required for rejection)</label>
+            <textarea id="review-reason" value={reviewReason} onChange={event=>setReviewReason(event.target.value)} />
+            <button disabled={reviewBusy} onClick={()=>review('Accepted')}>Accept document</button>
+            <button disabled={reviewBusy || !reviewReason.trim()} onClick={()=>review('Rejected')}>Reject document</button>
+          </section>}
 
 
           <div className="document-details-grid">
@@ -274,6 +295,7 @@ function DocumentDetails() {
                   onClick={
                     downloadDocument
                   }
+                  aria-label="Download document"
                 >
                   ↓
                 </button>
@@ -283,13 +305,13 @@ function DocumentDetails() {
 
               <div className="document-preview">
 
-                {document.fileUrl &&
+                {previewUrl &&
                 document.type ===
                   "Image" ? (
 
                   <img
                     src={
-                      document.fileUrl
+                      previewUrl
                     }
                     alt={
                       document.name
@@ -299,8 +321,9 @@ function DocumentDetails() {
                     }}
                   />
 
+                ) : previewUrl && document.type === 'PDF' ? (
+                  <iframe src={previewUrl} title={document.name} style={{ width: '100%', minHeight: 600, border: 0 }} />
                 ) : (
-
                   <div className="document-preview-placeholder">
 
                     <div>
@@ -314,8 +337,7 @@ function DocumentDetails() {
                     <span>
                       {document.type}
                       {" · "}
-                      Preview available
-                      when a file is attached.
+                      Image and PDF previews are supported. Download other file types to view them.
                     </span>
 
                   </div>
@@ -594,6 +616,7 @@ function DocumentDetails() {
                   The current version will be
                   retained in the document record.
                 </p>
+                {(document.versions || []).length>0&&<div><h3>Previous versions</h3>{document.versions.map((version,index)=><p key={`${version.version}-${index}`}>Version {version.version}: {version.name} <button onClick={()=>downloadDocument(version)}>Download version {version.version}</button></p>)}</div>}
 
                 <input
                   type="file"
@@ -626,6 +649,7 @@ function DocumentDetails() {
                 </div>
 
                 <div className="document-review-grid">
+                  {document.reviewReason && <div><span>Review reason</span><p>{document.reviewReason}</p></div>}
 
                   <div>
 
@@ -688,3 +712,5 @@ function DocumentDetails() {
 }
 
 export default DocumentDetails;
+
+

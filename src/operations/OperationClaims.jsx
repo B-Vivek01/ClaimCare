@@ -1,3 +1,4 @@
+import { useClaims } from "../claim/ClaimContext";
 import {
   useMemo,
   useState,
@@ -11,69 +12,11 @@ import {
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
-const initialClaims = [
-  {
-    id: "CLM-1001",
-    customer: "Rahul Kumar",
-    type: "Medical Claim",
-    policy: "POL-2026-1001",
-    amount: "₹85,000",
-    status: "In Progress",
-    priority: "High",
-    assignee: "Arjun",
-    updated: "10 Aug 2026",
-  },
-  {
-    id: "CLM-1002",
-    customer: "Priya Sharma",
-    type: "Vehicle Claim",
-    policy: "POL-2026-1002",
-    amount: "₹42,500",
-    status: "New",
-    priority: "Medium",
-    assignee: "Unassigned",
-    updated: "10 Aug 2026",
-  },
-  {
-    id: "CLM-1003",
-    customer: "Anil Kumar",
-    type: "Medical Claim",
-    policy: "POL-2026-1003",
-    amount: "₹1,20,000",
-    status: "Pending Documents",
-    priority: "High",
-    assignee: "Meena",
-    updated: "09 Aug 2026",
-  },
-  {
-    id: "CLM-1004",
-    customer: "Sneha Reddy",
-    type: "Property Claim",
-    policy: "POL-2026-1004",
-    amount: "₹2,40,000",
-    status: "In Progress",
-    priority: "Low",
-    assignee: "Arjun",
-    updated: "08 Aug 2026",
-  },
-  {
-    id: "CLM-1005",
-    customer: "Vikram Singh",
-    type: "Vehicle Claim",
-    policy: "POL-2026-1005",
-    amount: "₹65,000",
-    status: "Resolved",
-    priority: "Medium",
-    assignee: "Kiran",
-    updated: "07 Aug 2026",
-  },
-];
-
 function OperationsClaims() {
   const navigate = useNavigate();
 
-  const [claims] =
-    useState(initialClaims);
+  const { claims: actualClaims } = useClaims();
+  const claims = actualClaims.map(claim => ({...claim,customer:claim.customerName,type:claim.category,policy:claim.policyNumber,amount:claim.amount || 'Not specified',assignee:claim.assignedSpecialist || 'Unassigned',updated:claim.updatedAt || claim.createdAt}));
 
   const [search, setSearch] =
     useState("");

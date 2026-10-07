@@ -20,9 +20,11 @@ function CustomReports() {
 
   const [message, setMessage] =
     useState("");
+  const [busy, setBusy] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (busy) return;
 
     if (!form.name.trim()) {
       setMessage(
@@ -32,7 +34,9 @@ function CustomReports() {
       return;
     }
 
-    addReport({
+    setBusy(true);
+    try {
+    const saved = await addReport({
       name: form.name,
       category: form.category,
       type: form.type,
@@ -42,6 +46,7 @@ function CustomReports() {
       escalated: 0,
       slaCompliance: 0,
     });
+    if (!saved) throw new Error('Report could not be saved.');
 
     setMessage(
       "Custom report created successfully."
@@ -52,6 +57,8 @@ function CustomReports() {
       category: "Claims",
       type: "Custom",
     });
+    } catch (error) { setMessage(error.message); }
+    finally { setBusy(false); }
   };
 
   return (
@@ -162,7 +169,7 @@ function CustomReports() {
               </select>
             </label>
 
-            <button
+            <button disabled={busy}
               type="submit"
               className="reporting-primary-button"
             >

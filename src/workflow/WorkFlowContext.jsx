@@ -1,133 +1,30 @@
+import { useClaims } from "../claim/ClaimContext";
+import { useRecords } from "../data/useRecords";
 import {
   createContext,
   useContext,
-  useEffect,
-  useState,
 } from "react";
 
 const WorkflowContext =
   createContext();
 
-const initialWorkItems = [
-  {
-    id: "CLM-1001",
-    customer: "Rahul Kumar",
-    type: "Medical Claim",
-    status: "New",
-    priority: "High",
-    team: "Medical Claims",
-    assignedTo: "Unassigned",
-    createdAt: "2026-08-10T08:30:00",
-    slaHours: 24,
-    elapsedHours: 18,
-    escalation: false,
-  },
-  {
-    id: "CLM-1002",
-    customer: "Priya Sharma",
-    type: "Vehicle Claim",
-    status: "In Progress",
-    priority: "Medium",
-    team: "Motor Claims",
-    assignedTo: "Arjun",
-    createdAt: "2026-08-10T05:30:00",
-    slaHours: 48,
-    elapsedHours: 20,
-    escalation: false,
-  },
-  {
-    id: "CLM-1003",
-    customer: "Anil Kumar",
-    type: "Medical Claim",
-    status: "Pending Documents",
-    priority: "High",
-    team: "Medical Claims",
-    assignedTo: "Meena",
-    createdAt: "2026-08-09T06:30:00",
-    slaHours: 24,
-    elapsedHours: 26,
-    escalation: true,
-  },
-  {
-    id: "CLM-1004",
-    customer: "Sneha Reddy",
-    type: "Property Claim",
-    status: "In Progress",
-    priority: "Low",
-    team: "Property Claims",
-    assignedTo: "Arjun",
-    createdAt: "2026-08-08T10:30:00",
-    slaHours: 72,
-    elapsedHours: 32,
-    escalation: false,
-  },
-];
-
-const initialRules = [
-  {
-    id: "RULE-001",
-    name: "Medical Claim Assignment",
-    event: "Claim Submitted",
-    condition: "Category = Medical",
-    action: "Assign to Medical Claims",
-    enabled: true,
-  },
-  {
-    id: "RULE-002",
-    name: "High Priority Escalation",
-    event: "SLA Threshold",
-    condition: "Priority = High",
-    action: "Escalate to Manager",
-    enabled: true,
-  },
-];
-
 function WorkflowProvider({
   children,
 }) {
-  const [
-    workItems,
-    setWorkItems,
-  ] = useState(() => {
-    const stored =
-      localStorage.getItem(
-        "claimcare_work_items"
-      );
+  const {claims,updateClaim} = useClaims();
+  const workItems = claims.filter(claim=>claim.status!=='Draft' && !claim.archived).map(claim=>({
+    id:claim.id,customer:claim.customerName,type:claim.category,status:claim.status,priority:claim.priority,
+    team:`${claim.category || 'General'} Claims`,assignedTo:claim.assignedSpecialist || 'Unassigned',createdAt:claim.createdAt,
+    slaHours:claim.sla?.hours || 48,elapsedHours:Math.max(0,(Date.now()-new Date(claim.createdAt).getTime())/3600000),escalation:claim.status==='Escalated'
+  }));
+  const setWorkItems = update => {
+    const next = typeof update==='function'?update(workItems):update;
+    return Promise.all(next.filter(item=>JSON.stringify(item)!==JSON.stringify(workItems.find(previous=>previous.id===item.id))).map(item=>updateClaim(item.id,{
+      status:item.status,priority:item.priority,assignedSpecialist:item.assignedTo==='Unassigned'?null:item.assignedTo,
+    })));
+  };
 
-    return stored
-      ? JSON.parse(stored)
-      : initialWorkItems;
-  });
-
-  const [
-    rules,
-    setRules,
-  ] = useState(() => {
-    const stored =
-      localStorage.getItem(
-        "claimcare_workflow_rules"
-      );
-
-    return stored
-      ? JSON.parse(stored)
-      : initialRules;
-  });
-
-  useEffect(() => {
-    localStorage.setItem(
-      "claimcare_work_items",
-      JSON.stringify(
-        workItems
-      )
-    );
-  }, [workItems]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "claimcare_workflow_rules",
-      JSON.stringify(rules)
-    );
-  }, [rules]);
+  const [rules, setRules] = useRecords("workflow_rules");
 
   const assignWorkItem = (
     id,
@@ -277,3 +174,4 @@ export function useWorkflow() {
 }
 
 export default WorkflowProvider;
+

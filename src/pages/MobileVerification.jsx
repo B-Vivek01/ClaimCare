@@ -1,287 +1,35 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
-
-function MobileVerification() {
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { requireBackend } from '../backend/client';
+import { auth } from '../backend/auth';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
+export default function MobileVerification() {
   const navigate = useNavigate();
-
-  const [code, setCode] = useState("");
-  const [status, setStatus] = useState("idle");
-  const [error, setError] = useState("");
-
-  // Temporary frontend value.
-  // Replace this with the mobile number returned
-  // from the registration/backend flow.
-  const registeredMobile = "+91 XXXXX XXXXX";
-
-  const handleCodeChange = (event) => {
-    const value = event.target.value
-      .replace(/\D/g, "")
-      .slice(0, 6);
-
-    setCode(value);
-    setError("");
-
-    if (status === "error" || status === "resent") {
-      setStatus("idle");
-    }
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    if (!code) {
-      setError("Verification code is required.");
-      return;
-    }
-
-    if (code.length !== 6) {
-      setError("Enter the 6-digit verification code.");
-      return;
-    }
-
-    setError("");
-    setStatus("loading");
-
-    /*
-     * Backend integration point.
-     *
-     * Replace this simulation with the actual
-     * mobile verification API.
-     */
-
+  const [phone, setPhone] = useState('');
+  const [code, setCode] = useState('');
+  const [sentPhone, setSentPhone] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  async function send() {
+    setBusy(true); setError('');
     try {
-      await new Promise((resolve) =>
-        setTimeout(resolve, 1200)
-      );
-
-      /*
-       * Temporary frontend behavior:
-       * any 6-digit code is treated as successful.
-       *
-       * The backend must perform the actual
-       * OTP verification.
-       */
-
-      setStatus("success");
-    } catch (error) {
-      setStatus("error");
-      setError(
-        "We couldn't verify your mobile number. Please try again."
-      );
-    }
-  };
-
-  const handleResend = async () => {
-    setError("");
-    setStatus("resending");
-
-    /*
-     * Replace with actual resend-mobile-code API.
-     */
-
+      if (!/^\+[1-9]\d{7,14}$/.test(phone)) throw new Error('Enter your number with country code, for example +919876543210.');
+      const { error: issue } = await requireBackend().auth.updateUser({ phone });
+      if (issue) throw issue;
+      setSentPhone(phone);
+    } catch (issue) { setError(issue.message || 'Unable to send SMS. Please retry.'); }
+    finally { setBusy(false); }
+  }
+  async function verify(event) {
+    event.preventDefault(); setBusy(true); setError('');
     try {
-      await new Promise((resolve) =>
-        setTimeout(resolve, 1000)
-      );
-
-      setStatus("resent");
-    } catch (error) {
-      setStatus("error");
-      setError(
-        "We couldn't resend the verification code. Please try again."
-      );
-    }
-  };
-
-  const handleContinue = () => {
-    navigate("/welcome");
-  };
-
-  return (
-    <>
-      <Navbar />
-
-      <main className="mobile-verification-page">
-
-        <section className="mobile-verification-card">
-
-          {status === "success" ? (
-
-            /* SUCCESS STATE */
-
-            <div className="mobile-verification-result">
-
-              <div className="mobile-success-icon">
-                ✓
-              </div>
-
-              <span className="mobile-verification-badge">
-                MOBILE VERIFIED
-              </span>
-
-              <h1>
-                Mobile number verified
-              </h1>
-
-              <p>
-                Your mobile number has been confirmed.
-                Continue to complete your ClaimCare setup.
-              </p>
-
-              <button
-                type="button"
-                className="mobile-primary-btn"
-                onClick={handleContinue}
-              >
-                Continue
-              </button>
-
-            </div>
-
-          ) : (
-
-            /* VERIFICATION FORM */
-
-            <div className="mobile-verification-content">
-
-              <div className="mobile-verification-icon">
-                ☎
-              </div>
-
-              <span className="mobile-verification-badge">
-                MOBILE VERIFICATION
-              </span>
-
-              <h1>
-                Verify your mobile number
-              </h1>
-
-              <p>
-                We've sent a verification code to
-              </p>
-
-              <strong className="mobile-number">
-                {registeredMobile}
-              </strong>
-
-              <p className="mobile-helper">
-                Enter the 6-digit code to confirm
-                your mobile number.
-              </p>
-
-
-              <form onSubmit={handleSubmit}>
-
-                <div className="mobile-code-field">
-
-                  <label htmlFor="mobileVerificationCode">
-                    Verification Code
-                  </label>
-
-                  <input
-                    id="mobileVerificationCode"
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    maxLength={6}
-                    value={code}
-                    onChange={handleCodeChange}
-                    placeholder="000000"
-                    className={
-                      error
-                        ? "mobile-code-input error"
-                        : "mobile-code-input"
-                    }
-                    aria-label="6 digit mobile verification code"
-                  />
-
-                  <div className="mobile-code-counter">
-                    {code.length}/6
-                  </div>
-
-                </div>
-
-
-                {error && (
-                  <div className="mobile-verification-error">
-                    {error}
-                  </div>
-                )}
-
-
-                {status === "resent" && (
-                  <div className="mobile-verification-resent">
-                    A new verification code has been sent.
-                  </div>
-                )}
-
-
-                <button
-                  type="submit"
-                  className="mobile-primary-btn"
-                  disabled={
-                    status === "loading" ||
-                    status === "resending"
-                  }
-                >
-
-                  {status === "loading" ? (
-                    <>
-                      <span className="mobile-spinner" />
-                      Verifying...
-                    </>
-                  ) : (
-                    "Verify Mobile"
-                  )}
-
-                </button>
-
-              </form>
-
-
-              <div className="mobile-resend">
-
-                <span>
-                  Didn't receive the code?
-                </span>
-
-                <button
-                  type="button"
-                  onClick={handleResend}
-                  disabled={
-                    status === "loading" ||
-                    status === "resending"
-                  }
-                >
-                  {status === "resending"
-                    ? "Resending..."
-                    : "Resend Code"}
-                </button>
-
-              </div>
-
-
-              <div className="mobile-back">
-
-                <Link to="/verify">
-                  ← Back to email verification
-                </Link>
-
-              </div>
-
-            </div>
-
-          )}
-
-        </section>
-
-      </main>
-
-      <Footer />
-    </>
-  );
+      if (!sentPhone || !/^\d{6}$/.test(code)) throw new Error('Send an SMS and enter its six-digit code.');
+      const { error: issue } = await requireBackend().auth.verifyOtp({ phone: sentPhone, token: code, type: 'phone_change' });
+      if (issue) throw issue;
+      navigate('/welcome');
+    } catch (issue) { setError(issue.message || 'Invalid or expired code. Please retry.'); }
+    finally { setBusy(false); }
+  }
+  return <><Navbar /><main className="verification-page"><section className="verification-container"><h1>Verify your mobile number</h1>{auth.currentUser?.phoneNumber ? <><p>Your verified number is {auth.currentUser.phoneNumber}.</p><Link to="/dashboard">Continue</Link></> : <><label htmlFor="phone">Mobile number with country code</label><input id="phone" type="tel" value={phone} onChange={event => { setPhone(event.target.value); setSentPhone(''); }} disabled={busy} /><p>Sending a code uses the configured SMS provider.</p><button disabled={busy} onClick={send}>Send SMS code</button>{sentPhone && <form onSubmit={verify}><label htmlFor="sms-code">SMS code</label><input id="sms-code" inputMode="numeric" autoComplete="one-time-code" value={code} maxLength={6} onChange={event => setCode(event.target.value.replace(/\D/g, ''))} /><button disabled={busy}>Verify number</button></form>}</>}{error && <p role="alert" className="verification-error">{error}</p>}<p><Link to="/dashboard">Return to dashboard</Link></p></section></main><Footer /></>;
 }
-
-export default MobileVerification;

@@ -1,3 +1,6 @@
+import { useDocuments } from "../document/DocumentContext";
+import { useAuth } from "../auth/AuthContext";
+import { useProfiles } from "../backend/useProfiles";
 import {
   useState,
 } from "react";
@@ -15,6 +18,10 @@ import { useClaims } from "./ClaimContext";
 
 function ClaimDetails() {
   const { id } = useParams();
+  const { profile, user } = useAuth();
+  const [people]=useProfiles();
+  const [busy,setBusy]=useState(false);
+  const staff = ["admin", "operations"].includes(profile?.role);
 
   const navigate =
     useNavigate();
@@ -28,7 +35,9 @@ function ClaimDetails() {
     removeTag,
   } = useClaims();
 
-  const claim = getClaim(id);
+  const originalClaim = getClaim(id);
+  const {documents}=useDocuments();
+  const claim=originalClaim?{...originalClaim,documents:documents.filter(item=>item.claimId===id).map(item=>({...item,status:item.reviewStatus}))}:undefined;
 
   const [note, setNote] =
     useState("");
@@ -39,24 +48,10 @@ function ClaimDetails() {
   const [message, setMessage] =
     useState("");
 
-  const [selectedSpecialist, setSelectedSpecialist] =
-    useState(
-      claim?.assignedSpecialist ||
-        ""
-    );
+  const selectedSpecialist = claim?.assignedSpecialistId || "";
+  const priority = claim?.priority || "Medium";
 
-  const [priority, setPriority] =
-    useState(
-      claim?.priority ||
-        "Medium"
-    );
-
-  const specialists = [
-    "Rahul Sharma",
-    "Priya Reddy",
-    "Arjun Kumar",
-    "Sneha Patel",
-  ];
+  const specialists = people.filter(person=>['admin','operations'].includes(person.role)&&person.status==='Active');
 
   if (!claim) {
     return (
@@ -92,70 +87,79 @@ function ClaimDetails() {
   }
 
   const handleAddNote =
-    () => {
-      if (!note.trim()) {
+    async () => {
+      if (busy || !note.trim()) {
         return;
       }
 
-      addInternalNote(
+      setBusy(true);
+      const saved=await addInternalNote(
         id,
         note.trim()
       );
 
-      setNote("");
+      if(saved) setNote("");
+      setBusy(false);
     };
 
   const handleAddTag =
-    () => {
-      if (!tag.trim()) {
+    async () => {
+      if (busy || !tag.trim()) {
         return;
       }
 
-      addTag(
+      setBusy(true);
+      const saved=await addTag(
         id,
         tag.trim()
       );
 
-      setTag("");
+      if(saved) setTag("");
+      setBusy(false);
     };
 
   const handlePriority =
-    (value) => {
-      setPriority(value);
-
-      updateClaim(id, {
+    async (value) => {
+      if(busy) return;
+      setBusy(true);
+      await updateClaim(id, {
         priority: value,
       });
+
+      setBusy(false);
     };
 
   const handleSpecialist =
-    (value) => {
-      setSelectedSpecialist(
-        value
-      );
-
-      updateClaim(id, {
-        assignedSpecialist:
-          value,
+    async (value) => {
+      if(busy) return;
+      setBusy(true);
+      const person=specialists.find(item=>item.id===value);
+      await updateClaim(id, {
+        assignedSpecialistId: person?.id || null,
+        assignedSpecialist: person?.name || person?.email || null,
       });
+
+      setBusy(false);
     };
 
   const handleSendMessage =
-    () => {
-      if (!message.trim()) {
+    async () => {
+      if (busy || !message.trim()) {
         return;
       }
 
-      updateClaim(id, {
+      setBusy(true);
+      const saved=await updateClaim(id, previous=>({
         messages: [
-          ...(claim.messages ||
+          ...(previous.messages ||
             []),
 
           {
-            id: `MSG-${Date.now()}`,
+            id: `MSG-${crypto.randomUUID()}`,
 
             sender:
-              "Current User",
+              profile?.name || user?.email,
+            senderId: user?.uid,
 
             message:
               message.trim(),
@@ -165,9 +169,10 @@ function ClaimDetails() {
               .split("T")[0],
           },
         ],
-      });
+      }));
 
-      setMessage("");
+      if(saved) setMessage("");
+      setBusy(false);
     };
 
   return (
@@ -544,6 +549,7 @@ function ClaimDetails() {
                 </label>
 
                 <select
+                  disabled={!staff || busy}
                   value={
                     selectedSpecialist
                   }
@@ -562,10 +568,10 @@ function ClaimDetails() {
                     (person) => (
 
                       <option
-                        key={person}
-                        value={person}
+                        key={person.id}
+                        value={person.id}
                       >
-                        {person}
+                        {person.name || person.email}
                       </option>
 
                     )
@@ -583,6 +589,7 @@ function ClaimDetails() {
                 </label>
 
                 <select
+                  disabled={!staff || busy}
                   value={
                     priority
                   }
@@ -619,7 +626,7 @@ function ClaimDetails() {
             <div className="claim-operation-actions">
 
               <button
-                className="claim-secondary-button"
+                disabled={!staff || ['Closed','Rejected'].includes(claim.status)} className="claim-secondary-button"
                 onClick={() =>
                   updateClaimStatus(
                     id,
@@ -631,7 +638,7 @@ function ClaimDetails() {
               </button>
 
               <button
-                className="claim-primary-button"
+                disabled={!staff || ['Closed','Rejected'].includes(claim.status)} className="claim-primary-button"
                 onClick={() =>
                   updateClaimStatus(
                     id,
@@ -724,6 +731,7 @@ function ClaimDetails() {
 
 
           {/* INTERNAL NOTES */}
+          {staff && <>
 
           <section className="claim-detail-card">
 
@@ -803,6 +811,7 @@ function ClaimDetails() {
             </div>
 
           </section>
+          </>}
 
 
           {/* MESSAGES */}
@@ -900,6 +909,7 @@ function ClaimDetails() {
 
             </div>
 
+            <Link to={`/documents/upload?claim=${id}`}>Upload a claim document</Link>
             {claim.documents?.length ? (
 
               <div className="claim-document-list">
@@ -919,7 +929,7 @@ function ClaimDetails() {
                       <div>
 
                         <strong>
-                          {document.name}
+                          <Link to={`/documents/${document.id}`}>{document.name}</Link>
                         </strong>
 
                         <small>
@@ -1016,3 +1026,4 @@ function getStatusClass(
 }
 
 export default ClaimDetails;
+

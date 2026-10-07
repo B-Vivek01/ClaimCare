@@ -1,3 +1,4 @@
+import { useRecords } from "../data/useRecords";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
@@ -6,19 +7,7 @@ import Footer from "../components/Footer";
 function AddressManagement() {
   const navigate = useNavigate();
 
-  const [addresses, setAddresses] = useState([
-    {
-      id: 1,
-      type: "Home",
-      addressLine1: "123 Main Street",
-      addressLine2: "",
-      city: "Hyderabad",
-      state: "Telangana",
-      postalCode: "500001",
-      country: "India",
-      selected: true,
-    },
-  ]);
+  const [addresses, setAddresses] = useRecords("addresses", true);
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -134,12 +123,10 @@ function AddressManagement() {
     setStatus("saving");
 
     try {
-      await new Promise((resolve) =>
-        setTimeout(resolve, 700)
-      );
+
 
       if (editingId) {
-        setAddresses((previous) =>
+        const saved = await setAddresses((previous) =>
           previous.map((address) =>
             address.id === editingId
               ? {
@@ -149,15 +136,17 @@ function AddressManagement() {
               : address
           )
         );
+        if (!saved) throw new Error("Address could not be saved.");
       } else {
-        setAddresses((previous) => [
+        const saved = await setAddresses((previous) => [
           ...previous,
           {
-            id: Date.now(),
+            id: crypto.randomUUID(),
             ...formData,
             selected: previous.length === 0,
           },
         ]);
+        if (!saved) throw new Error("Address could not be saved.");
       }
 
       setStatus("success");
@@ -165,7 +154,7 @@ function AddressManagement() {
       setTimeout(() => {
         closeForm();
       }, 700);
-    } catch (error) {
+    } catch {
       setStatus("error");
     }
   };
@@ -712,3 +701,4 @@ function AddressManagement() {
 }
 
 export default AddressManagement;
+

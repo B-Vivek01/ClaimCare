@@ -87,7 +87,7 @@ function Broadcasts() {
     setSelectedTemplate("");
   };
 
-  const useTemplate = (id) => {
+  const applyTemplate = (id) => {
     const template =
       templates.find(
         (item) => item.id === id
@@ -224,7 +224,7 @@ function Broadcasts() {
                       e.target.value
                     );
 
-                    useTemplate(
+                    applyTemplate(
                       e.target.value
                     );
                   }}

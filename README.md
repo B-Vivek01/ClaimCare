@@ -1,4 +1,20 @@
-# React + Vite
+# ClaimCare
+
+React application with Supabase authentication, PostgreSQL records, private file storage and Razorpay test checkout.
+
+Start with [setup instructions](docs/SETUP.md) and [delivery status and acceptance checklist](docs/DELIVERY_STATUS.md). The backend project must be configured before private application flows can work. Some existing screens remain incomplete; the delivery status lists the known gaps.
+
+```text
+npm install
+npm run dev -- --host 127.0.0.1
+npm test
+npm run lint
+npm run build
+```
+
+Copy `.env.example` to `.env.local` and supply the Supabase URL and publishable key. Keep all server secrets out of the frontend.
+
+## Original Vite template notes
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 

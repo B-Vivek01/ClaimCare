@@ -18,7 +18,7 @@ function PaymentDetails() {
 
   const payment = payments.find(
     (item) =>
-      item.id === selectedId
+      item.id === (selectedId || payments[0]?.id)
   );
 
   if (!payment) {

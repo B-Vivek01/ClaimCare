@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged } from "../backend/auth";
 
-import { auth } from "../firebase/Firebase";
+import { auth } from "../backend/session";
 
 function ProtectedRoute({ children }) {
   const [user, setUser] = useState(null);

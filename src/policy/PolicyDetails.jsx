@@ -2,6 +2,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { usePolicies } from "./PolicyContext";
+import { useClaims } from "../claim/ClaimContext";
 
 function PolicyDetails() {
   const { id } = useParams();
@@ -11,7 +12,11 @@ function PolicyDetails() {
   const { getPolicy } =
     usePolicies();
 
-  const policy = getPolicy(id);
+  const { claims } = useClaims();
+  const storedPolicy = getPolicy(id);
+  const policy = storedPolicy ? { ...storedPolicy, claims: claims.filter(claim =>
+    claim.policyId === id || (claim.policyNumber === storedPolicy.policyNumber && claim.ownerId === storedPolicy.ownerId)
+  ) } : undefined;
 
   if (!policy) {
     return (
@@ -287,7 +292,7 @@ function PolicyDetails() {
                       <div>
 
                         <strong>
-                          {claim.claimNumber}
+                          <Link to={`/claims/${claim.id}`}>{claim.claimNumber}</Link>
                         </strong>
 
                         <span>
@@ -301,12 +306,7 @@ function PolicyDetails() {
                       </span>
 
                       <strong>
-                        ₹
-                        {Number(
-                          claim.amount
-                        ).toLocaleString(
-                          "en-IN"
-                        )}
+                        {claim.amount == null ? 'Amount not provided' : `₹${Number(claim.amount).toLocaleString('en-IN')}`}
                       </strong>
 
                     </div>

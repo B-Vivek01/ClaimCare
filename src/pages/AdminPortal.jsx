@@ -4,8 +4,8 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { onAuthStateChanged, signOut } from "../backend/auth";
+import { doc, getDoc } from "../backend/profiles";
 
 import { auth, db } from "../firebase/firebase";
 

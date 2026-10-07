@@ -1,3 +1,4 @@
+import { useClaims } from "../claim/ClaimContext";
 import {
   useMemo,
   useState,
@@ -10,52 +11,9 @@ import {
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
-const initialTasks = [
-  {
-    id: "TSK-1001",
-    title: "Verify Hospital Documents",
-    claim: "CLM-1001",
-    assignee: "Arjun",
-    priority: "High",
-    status: "Pending",
-    due: "11 Aug 2026",
-    type: "Document Review",
-  },
-  {
-    id: "TSK-1002",
-    title: "Review Vehicle Estimate",
-    claim: "CLM-1002",
-    assignee: "Meena",
-    priority: "Medium",
-    status: "In Progress",
-    due: "12 Aug 2026",
-    type: "Assessment",
-  },
-  {
-    id: "TSK-1003",
-    title: "Request Missing Invoice",
-    claim: "CLM-1003",
-    assignee: "Unassigned",
-    priority: "High",
-    status: "Pending",
-    due: "10 Aug 2026",
-    type: "Customer Action",
-  },
-  {
-    id: "TSK-1004",
-    title: "Review Property Inspection",
-    claim: "CLM-1004",
-    assignee: "Kiran",
-    priority: "Low",
-    status: "Completed",
-    due: "08 Aug 2026",
-    type: "Assessment",
-  },
-];
-
 function OperationsTasks() {
-  const [tasks] =
-    useState(initialTasks);
+  const {claims}=useClaims();
+  const tasks=claims.flatMap(claim=>(claim.tasks || []).map(task=>({...task,claim:claim.id,assignee:task.assignee || claim.assignedSpecialist || "Unassigned",due:task.dueDate || "Not set",type:task.type || "Claim Task"})));
 
   const [search, setSearch] =
     useState("");

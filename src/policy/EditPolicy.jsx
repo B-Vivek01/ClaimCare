@@ -172,11 +172,9 @@ function EditPolicy() {
 
     setSaving(true);
 
-    await new Promise((resolve) =>
-      setTimeout(resolve, 700)
-    );
 
-    updatePolicy(id, {
+
+    const saved = await updatePolicy(id, {
       ...formData,
 
       premiumAmount:
@@ -187,6 +185,7 @@ function EditPolicy() {
     });
 
     setSaving(false);
+    if (!saved) return;
     setSuccess(true);
 
     setTimeout(() => {

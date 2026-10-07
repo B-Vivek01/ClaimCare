@@ -1,0 +1,4 @@
+QA TEST ONLY — Replacement document, version 2.
+
+This synthetic fixture verifies version retention and resets the previous
+document review. No actual claim or personal identity information is included.

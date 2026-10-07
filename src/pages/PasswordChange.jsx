@@ -1,16 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
 import {
   EmailAuthProvider,
   reauthenticateWithCredential,
   updatePassword,
-} from "firebase/auth";
+} from "../backend/auth";
 
-import { auth } from "../firebase/Firebase.jsx";
+import { auth } from "../backend/session";
 
 function PasswordChange() {
   const navigate = useNavigate();

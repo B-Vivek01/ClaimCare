@@ -1,17 +1,16 @@
 import {
   Link,
+  useNavigate,
 } from "react-router-dom";
 
-import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 
-import { auth, db } from "../firebase/Firebase.jsx";
+import { auth, db } from "../backend/session";
 
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged } from "../backend/auth";
 
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc } from "../backend/profiles";
 
 function OperationsPortal() {
   const navigate = useNavigate();
@@ -46,7 +45,7 @@ function OperationsPortal() {
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [navigate]);
   return (
     <>
 
@@ -279,6 +278,8 @@ function OperationsPortal() {
 
 
             <div className="operations-action-grid">
+              <Link to="/ops/support" className="operations-action-card"><div><strong>Support inbox</strong><small>Review website contact requests</small></div></Link>
+              <Link to="/ops/identity-reviews" className="operations-action-card"><div><strong>Identity reviews</strong><small>Review pending customer documents</small></div></Link>
 
               <Link
                 to="/ops/queue"

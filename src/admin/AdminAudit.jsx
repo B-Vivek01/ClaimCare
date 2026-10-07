@@ -1,53 +1,33 @@
 import {
   useMemo,
   useState,
+  useEffect,
 } from "react";
+import { requireBackend } from "../backend/client";
 
 import { Link } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
-const auditRecords = [
-  {
-    id: "AUD-1001",
-    actor: "Admin User",
-    action: "Role Updated",
-    target: "ROLE-002",
-    category: "Role",
-    result: "Success",
-    time: "13 Aug 2026, 09:30",
-  },
-  {
-    id: "AUD-1002",
-    actor: "Admin User",
-    action: "User Disabled",
-    target: "USR-1004",
-    category: "User",
-    result: "Success",
-    time: "13 Aug 2026, 09:05",
-  },
-  {
-    id: "AUD-1003",
-    actor: "System Admin",
-    action: "Permission Updated",
-    target: "ROLE-003",
-    category: "Permission",
-    result: "Success",
-    time: "12 Aug 2026, 17:20",
-  },
-  {
-    id: "AUD-1004",
-    actor: "Operations Admin",
-    action: "Workflow Setting Changed",
-    target: "WF-SETTING",
-    category: "Configuration",
-    result: "Success",
-    time: "12 Aug 2026, 14:10",
-  },
-];
 
 function AdminAudit() {
+  const [auditRecords,setAuditRecords] = useState([]);
+  const [error,setError] = useState('');
+  const [loading,setLoading] = useState(true);
+  useEffect(()=>{
+    let active=true;
+    async function load() {
+      try {
+        const {data,error:failure}=await requireBackend().from('audit_events').select('*').order('created_at',{ascending:false}).limit(500);
+        if(failure) throw failure;
+        if(active) {setAuditRecords(data.map(row=>({id:row.id,actor:row.actor_id || 'System',action:row.action,target:row.record_id,category:row.module,result:'Recorded',time:new Date(row.created_at).toLocaleString()})));setError('');}
+      } catch(problem) { if(active) setError(problem.message); }
+      finally { if(active) setLoading(false); }
+    }
+    load(); const timer=setInterval(load,15000);
+    return()=>{active=false;clearInterval(timer);};
+  },[]);
   const [search, setSearch] =
     useState("");
 
@@ -80,6 +60,7 @@ function AdminAudit() {
     }, [
       search,
       category,
+      auditRecords,
     ]);
 
   return (
@@ -97,6 +78,9 @@ function AdminAudit() {
 
 
           <section className="admin-card">
+            {loading && <p>Loading audit events…</p>}
+            {error && <p role="alert">{error}</p>}
+            <p>Most recent 500 database events. Refreshes every 15 seconds.</p>
 
             <div className="admin-card-header">
 
@@ -151,21 +135,7 @@ function AdminAudit() {
                   All Categories
                 </option>
 
-                <option value="User">
-                  User
-                </option>
-
-                <option value="Role">
-                  Role
-                </option>
-
-                <option value="Permission">
-                  Permission
-                </option>
-
-                <option value="Configuration">
-                  Configuration
-                </option>
+                {[...new Set(auditRecords.map(row=>row.category))].map(value=><option key={value} value={value}>{value}</option>)}
 
               </select>
 

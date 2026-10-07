@@ -1,3 +1,4 @@
+import { useDocuments } from "../document/DocumentContext";
 import {
   useMemo,
   useState,
@@ -10,46 +11,9 @@ import {
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
-const documents = [
-  {
-    id: "DOC-1001",
-    name: "Hospital Bill.pdf",
-    claim: "CLM-1001",
-    customer: "Rahul Kumar",
-    type: "Medical Bill",
-    status: "Under Review",
-    uploaded: "10 Aug 2026",
-  },
-  {
-    id: "DOC-1002",
-    name: "Vehicle Estimate.pdf",
-    claim: "CLM-1002",
-    customer: "Priya Sharma",
-    type: "Repair Estimate",
-    status: "Validated",
-    uploaded: "10 Aug 2026",
-  },
-  {
-    id: "DOC-1003",
-    name: "Discharge Summary.pdf",
-    claim: "CLM-1003",
-    customer: "Anil Kumar",
-    type: "Medical Report",
-    status: "Pending Review",
-    uploaded: "09 Aug 2026",
-  },
-  {
-    id: "DOC-1004",
-    name: "Property Inspection.pdf",
-    claim: "CLM-1004",
-    customer: "Sneha Reddy",
-    type: "Inspection Report",
-    status: "Validated",
-    uploaded: "08 Aug 2026",
-  },
-];
-
 function OperationsDocuments() {
+  const { documents: actualDocuments } = useDocuments();
+  const documents = actualDocuments.map(item => ({...item,claim:item.claimId || "Unlinked",customer:item.uploadedBy,status:item.reviewStatus,uploaded:item.uploadedDate}));
   const [search, setSearch] =
     useState("");
 
@@ -81,6 +45,7 @@ function OperationsDocuments() {
         }
       );
     }, [
+      documents,
       search,
       status,
     ]);
@@ -350,3 +315,4 @@ function Stat({
 }
 
 export default OperationsDocuments;
+

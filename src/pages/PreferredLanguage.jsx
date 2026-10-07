@@ -1,13 +1,15 @@
+import { useAuth } from "../auth/AuthContext";
+import { updateDoc } from "../backend/profiles";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
 function PreferredLanguage() {
   const navigate = useNavigate();
+  const {user,profile} = useAuth();
 
-  const [language, setLanguage] = useState("English");
-  const [savedLanguage, setSavedLanguage] = useState("English");
+  const [language, setLanguage] = useState(profile?.preferredLanguage || "English");
+  const [savedLanguage, setSavedLanguage] = useState(profile?.preferredLanguage || "English");
   const [status, setStatus] = useState("idle");
 
   const handleChange = (event) => {
@@ -26,20 +28,11 @@ function PreferredLanguage() {
     setStatus("saving");
 
     try {
-      /*
-       * Backend integration point.
-       *
-       * Replace this simulation with the actual
-       * preferred-language update API.
-       */
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, 900)
-      );
+      await updateDoc({id:user.uid},{preferredLanguage:language});
 
       setSavedLanguage(language);
       setStatus("success");
-    } catch (error) {
+    } catch {
       setStatus("error");
     }
   };

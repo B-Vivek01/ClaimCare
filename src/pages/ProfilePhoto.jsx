@@ -1,163 +1,35 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
-
-import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-
-import { auth, db } from "../firebase/Firebase.jsx";
-
-function ProfilePhoto() {
-  const navigate = useNavigate();
-
-  const [customerName, setCustomerName] = useState("Customer");
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        navigate("/login");
-        return;
-      }
-
-      try {
-        const customerRef = doc(db, "customers", user.uid);
-        const customerSnap = await getDoc(customerRef);
-
-        if (customerSnap.exists()) {
-          const data = customerSnap.data();
-          setCustomerName(data.name || "Customer");
-        }
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    });
-
-    return () => unsubscribe();
-  }, [navigate]);
-
-  const customerInitial =
-    customerName.charAt(0).toUpperCase() || "C";
-
-  if (loading) {
-    return (
-      <>
-        <Navbar />
-        <main className="profile-photo-page">
-          <div className="profile-photo-container">
-            <h2>Loading...</h2>
-          </div>
-        </main>
-        <Footer />
-      </>
-    );
+import { useEffect,useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
+import { storeFile,fileUrl } from '../data/files';
+import { updateDoc } from '../backend/profiles';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
+export default function ProfilePhoto() {
+  const {user,profile}=useAuth();
+  const [preview,setPreview]=useState('');
+  const [busy,setBusy]=useState(false);
+  const [error,setError]=useState('');
+  useEffect(()=>{
+    let active=true;
+    async function load() {
+      if (!profile?.profilePhotoPath) return;
+      try {const url=await fileUrl(profile.profilePhotoPath);if(active)setPreview(url);}
+      catch(issue){if(active)setError(issue.message);}
+    }
+    load();const timer=setInterval(load,240000);
+    return()=>{active=false;clearInterval(timer);};
+  },[profile?.profilePhotoPath]);
+  async function upload(event) {
+    const file=event.target.files?.[0];if(!file)return;
+    event.target.value='';setBusy(true);setError('');
+    try {
+      if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error('Choose a JPEG, PNG, or WebP image.');
+      const stored=await storeFile(file);
+      await updateDoc({id:user.uid},{profilePhotoPath:stored.storagePath});
+      setPreview(await fileUrl(stored.storagePath));
+    }catch(issue){setError(issue.message || 'Photo upload failed.');}
+    finally{setBusy(false);}
   }
-
-  return (
-    <>
-
-      <main className="profile-photo-page">
-        <div className="profile-photo-container">
-
-          {/* HEADER */}
-
-          <div className="profile-photo-header">
-
-            <div>
-
-              <span className="profile-photo-badge">
-                PROFILE
-              </span>
-
-              <h1>Profile Avatar</h1>
-
-              <p>
-                Your avatar is automatically generated from your registered name.
-              </p>
-
-            </div>
-
-            <button
-              type="button"
-              className="profile-photo-back-button"
-              onClick={() => navigate("/dashboard")}
-            >
-              ← Dashboard
-            </button>
-
-          </div>
-
-          {/* CARD */}
-
-          <section className="profile-photo-card">
-
-            <div className="profile-photo-card-header">
-
-              <div>
-
-                <h2>Your Profile Avatar</h2>
-
-                <p>
-                  This avatar is created from the first letter of your registered name.
-                </p>
-
-              </div>
-
-            </div>
-
-            <div className="profile-photo-content">
-
-              <div className="profile-photo-preview-section">
-
-                <div className="profile-photo-preview">
-
-                  <span>{customerInitial}</span>
-
-                </div>
-
-                <h3>{customerName}</h3>
-
-                <p className="profile-photo-preview-label">
-                  Registered Customer
-                </p>
-
-              </div>
-
-            </div>
-
-          </section>
-
-          {/* INFO */}
-
-          <section className="profile-photo-info">
-
-            <div className="profile-photo-info-icon">
-              i
-            </div>
-
-            <div>
-
-              <strong>How it works</strong>
-
-              <p>
-                The avatar always uses the first letter of the name entered during registration.
-                Every customer gets a unique initial automatically.
-              </p>
-
-            </div>
-
-          </section>
-
-        </div>
-      </main>
-
-      <Footer />
-    </>
-  );
+  return <><Navbar/><main className="profile-photo-page"><div className="profile-photo-container"><h1>Profile photo</h1>{preview?<img src={preview} alt="Your profile" style={{width:160,height:160,borderRadius:'50%',objectFit:'cover'}}/>:<div className="profile-avatar">{(profile?.name || 'C').charAt(0).toUpperCase()}</div>}{error&&<p role="alert">{error}</p>}<label htmlFor="profile-photo">Upload a photo (JPEG, PNG, or WebP; up to 10 MB)</label><input id="profile-photo" type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={upload}/>{busy&&<p role="status">Uploading…</p>}<p><Link to="/dashboard">Return to dashboard</Link></p></div></main><Footer/></>;
 }
-
-export default ProfilePhoto;

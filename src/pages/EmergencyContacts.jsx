@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useRecords } from "../data/useRecords";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -6,23 +7,9 @@ import Footer from "../components/Footer";
 function EmergencyContacts() {
   const navigate = useNavigate();
 
-  const defaultContacts = [
-    {
-      id: 1,
-      name: "Hemanth",
-      relationship: "Friend",
-      mobile: "+91 9876543210",
-      email: "Hemanth@example.com",
-    },
-  ];
 
-  const [contacts, setContacts] = useState(() => {
-    const saved = localStorage.getItem(
-      "claimcare_emergency_contacts"
-    );
 
-    return saved ? JSON.parse(saved) : defaultContacts;
-  });
+  const [contacts,setContacts] = useRecords("emergency_contacts", true);
 
   const emptyForm = {
     name: "",
@@ -37,12 +24,7 @@ function EmergencyContacts() {
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState("idle");
 
-  useEffect(() => {
-    localStorage.setItem(
-      "claimcare_emergency_contacts",
-      JSON.stringify(contacts)
-    );
-  }, [contacts]);
+
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -125,8 +107,9 @@ function EmergencyContacts() {
     setShowForm(false);
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
+    if (status === "saving") return;
 
     const validationErrors = validateForm();
 
@@ -137,8 +120,9 @@ function EmergencyContacts() {
 
     setStatus("saving");
 
+    let saved;
     if (editingId) {
-      setContacts((previous) =>
+      saved = await setContacts((previous) =>
         previous.map((contact) =>
           contact.id === editingId
             ? {
@@ -149,15 +133,16 @@ function EmergencyContacts() {
         )
       );
     } else {
-      setContacts((previous) => [
+      saved = await setContacts((previous) => [
         ...previous,
         {
-          id: Date.now(),
+          id: crypto.randomUUID(),
           ...formData,
         },
       ]);
     }
 
+    if (!saved) { setStatus("idle"); return; }
     setStatus("success");
 
     setTimeout(() => {

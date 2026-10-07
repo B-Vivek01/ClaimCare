@@ -4,12 +4,19 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { onAuthStateChanged, signOut } from "../backend/auth";
+import { doc, getDoc } from "../backend/profiles";
 
-import { auth, db } from "../firebase/Firebase";
+import { auth, db } from "../backend/session";
+import {useProfiles} from "../backend/useProfiles";
+import {useClaims} from "../claim/ClaimContext";
+import {useTableRows} from "../backend/useTableRows";
+import {Link} from "react-router-dom";
 
 function AdminDashboard() {
+  const [profiles]=useProfiles();
+  const {claims}=useClaims();
+  const {rows:events,error:eventError}=useTableRows('audit_events',10);
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
@@ -100,26 +107,26 @@ function AdminDashboard() {
           <section className="admin-grid">
             <div className="admin-card">
               <span>Total Customers</span>
-              <h2>1,245</h2>
+              <h2>{profiles.filter(profile=>profile.role==='customer').length}</h2>
               <small>Registered users</small>
             </div>
 
             <div className="admin-card">
               <span>Active Claims</span>
-              <h2>286</h2>
+              <h2>{claims.filter(claim=>!claim.archived&&!['Draft','Closed','Rejected'].includes(claim.status)).length}</h2>
               <small>Currently processing</small>
             </div>
 
             <div className="admin-card">
               <span>Operations Staff</span>
-              <h2>18</h2>
+              <h2>{profiles.filter(profile=>profile.role==='operations'&&profile.status==='Active').length}</h2>
               <small>Active employees</small>
             </div>
 
             <div className="admin-card">
-              <span>Pending Approvals</span>
-              <h2>12</h2>
-              <small>Require admin action</small>
+              <span>Pending Identity Reviews</span>
+              <h2>{profiles.filter(profile=>profile.identityStatus==='pending').length}</h2>
+              <small>Require staff review</small>
             </div>
           </section>
 
@@ -131,7 +138,7 @@ function AdminDashboard() {
             <div className="admin-module-grid">
               <div
                 className="admin-module"
-                onClick={() => navigate("/customers")}
+                onClick={() => navigate("/admin/users")}
               >
                 <div className="icon">👥</div>
                 <h3>Customer Management</h3>
@@ -140,7 +147,7 @@ function AdminDashboard() {
 
               <div
                 className="admin-module"
-                onClick={() => navigate("/employees")}
+                onClick={() => navigate("/admin/users")}
               >
                 <div className="icon">🧑‍💼</div>
                 <h3>Employee Management</h3>
@@ -176,7 +183,7 @@ function AdminDashboard() {
 
               <div
                 className="admin-module"
-                onClick={() => navigate("/settings")}
+                onClick={() => navigate("/admin/config")}
               >
                 <div className="icon">⚙️</div>
                 <h3>System Settings</h3>
@@ -189,27 +196,11 @@ function AdminDashboard() {
 
           <section className="admin-section">
             <h2>Recent Administrative Activity</h2>
-
+            <p><Link to="/admin/audit">Audit log</Link> · <Link to="/ops/support">Support inbox</Link> · <Link to="/ops/identity-reviews">Identity reviews</Link> · <Link to="/payments/invoices">Service invoices</Link></p>
+            {eventError&&<p role="alert">{eventError}</p>}
             <div className="activity-list">
-              <div className="activity-item">
-                <strong>New customer registered</strong>
-                <span>2 minutes ago</span>
-              </div>
-
-              <div className="activity-item">
-                <strong>Policy updated by Operations</strong>
-                <span>18 minutes ago</span>
-              </div>
-
-              <div className="activity-item">
-                <strong>Claim approved</strong>
-                <span>45 minutes ago</span>
-              </div>
-
-              <div className="activity-item">
-                <strong>Employee account created</strong>
-                <span>Today</span>
-              </div>
+              {events.map(event=><div className="activity-item" key={event.id}><strong>{event.action} — {event.module} / {event.record_id}</strong><span>{new Date(event.created_at).toLocaleString()}</span></div>)}
+              {!events.length&&!eventError&&<p>No recorded activity yet.</p>}
             </div>
           </section>
         </div>

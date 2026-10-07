@@ -1,13 +1,15 @@
 import { Link } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
+import InvoiceCreate from "./InvoiceCreate";
 
 import {
   usePayment,
 } from "./PaymentContext";
 
 function Invoices() {
+  const { profile } = useAuth();
   const {
     invoices,
-    updateInvoiceStatus,
   } = usePayment();
 
   return (
@@ -40,6 +42,7 @@ function Invoices() {
 
         </div>
 
+        {['admin', 'operations'].includes(profile?.role) && <InvoiceCreate />}
         <section className="payment-card">
 
           <div className="payment-table-wrapper">
@@ -98,22 +101,7 @@ function Invoices() {
 
                       <td>
 
-                        <button
-                          className={`payment-status-button ${
-                            invoice.status.toLowerCase()
-                          }`}
-                          onClick={() =>
-                            updateInvoiceStatus(
-                              invoice.id,
-                              invoice.status ===
-                                "Paid"
-                                ? "Pending"
-                                : "Paid"
-                            )
-                          }
-                        >
-                          {invoice.status}
-                        </button>
+                        <span>{invoice.status}</span>
 
                       </td>
 
@@ -139,3 +127,4 @@ function Invoices() {
 }
 
 export default Invoices;
+

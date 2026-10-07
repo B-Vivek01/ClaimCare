@@ -1,3 +1,6 @@
+import { useProfiles } from "../backend/useProfiles";
+import { useClaims } from "../claim/ClaimContext";
+import { usePolicies } from "../policy/PolicyContext";
 import {
   useMemo,
   useState,
@@ -10,46 +13,11 @@ import {
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
-const customers = [
-  {
-    id: "CUS-1001",
-    name: "Rahul Kumar",
-    email: "rahul@example.com",
-    phone: "+91 9876543210",
-    policies: 2,
-    claims: 1,
-    status: "Active",
-  },
-  {
-    id: "CUS-1002",
-    name: "Priya Sharma",
-    email: "priya@example.com",
-    phone: "+91 9876543211",
-    policies: 1,
-    claims: 1,
-    status: "Active",
-  },
-  {
-    id: "CUS-1003",
-    name: "Anil Kumar",
-    email: "anil@example.com",
-    phone: "+91 9876543212",
-    policies: 3,
-    claims: 2,
-    status: "Active",
-  },
-  {
-    id: "CUS-1004",
-    name: "Sneha Reddy",
-    email: "sneha@example.com",
-    phone: "+91 9876543213",
-    policies: 1,
-    claims: 0,
-    status: "Active",
-  },
-];
-
 function OperationsCustomers() {
+  const [profiles]=useProfiles();
+  const {claims}=useClaims();
+  const {policies}=usePolicies();
+  const customers=profiles.filter(profile=>profile.role==='customer').map(profile=>({...profile,phone:profile.mobile,claims:claims.filter(claim=>claim.ownerId===profile.id).length,policies:policies.filter(policy=>policy.ownerId===profile.id).length}));
   const [search, setSearch] =
     useState("");
 
@@ -69,7 +37,7 @@ function OperationsCustomers() {
           );
         }
       );
-    }, [search]);
+    }, [customers, search]);
 
   return (
     <>

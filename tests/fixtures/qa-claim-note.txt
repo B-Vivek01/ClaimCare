@@ -1,0 +1,4 @@
+QA TEST ONLY — ClaimCare upload and download fixture.
+
+This file contains fictional test information, no identity details, and no
+actual insurance claim. It validates private storage and related document links.

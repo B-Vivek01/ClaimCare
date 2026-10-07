@@ -1,123 +1,166 @@
+import CustomerReport from "./reporting/CustomerReport";
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import Home from "./pages/Home";
-import About from "./pages/About";
-import Services from "./pages/Services";
-import Pricing from "./pages/Pricing";
-import FAQ from "./pages/FAQ";
-import Contact from "./pages/Contact";
-import Register from "./pages/Register";
-import EmailVerification from "./pages/EmailVerification";
-import MobileVerification from "./pages/MobileVerification";
-import Welcome from "./pages/Welcome";
-
-import PersonalDetails from "./pages/PersonalDetails";
-import CustomerDashboard from "./pages/CustomerDashboard";
-import ContactInfo from "./pages/ContactInfo";
-import AddressManagement from "./pages/AddressManagement";
-import EmergencyContacts from "./pages/EmergencyContacts";
-import PreferredLanguage from "./pages/PreferredLanguage";
-import ProfilePhoto from "./pages/ProfilePhoto";
-import IdentityVerification from "./pages/IdentityVerification";
-import PasswordChange from "./pages/PasswordChange";
-import NotificationSettings from "./pages/NotificationSettings";
-
-import AddPolicy from "./policy/AddPolicy";
-import RenewalReminder from "./policy/RenewalRemainder";
-import PolicyCategories from "./policy/PolicyCategories";
-import PolicyDetails from "./policy/PolicyDetails";
-import EditPolicy from "./policy/EditPolicy";
-import PolicyDashboard from "./policy/PolicyDashboard";
 import PolicyProvider from "./policy/PolicyContext";
-
-import ClaimAudit from "./claim/ClaimAudit";
-import ClaimClosure from "./claim/ClaimClosure";
-import ClaimTimeline from "./claim/ClaimTimeline";
-import ClaimDetails from "./claim/ClaimDetails";
-import ClaimDashboard from "./claim/ClaimDashboard";
-import ClaimWizard from "./claim/ClaimWizard";
 import ClaimProvider from "./claim/ClaimContext";
 import DocumentProvider from "./document/DocumentContext";
-import DocumentUpload from "./document/DocumentUpload";
-import DocumentDetails from "./document/DocumentDetails";
-import DocumentDashboard from "./document/DocumentDashboard";
 import WorkflowProvider from "./workflow/WorkFlowContext";
-import WorkflowDashboard from "./workflow/WorkFlowDashboard";
-import AssignmentRules from "./workflow/AssignmentRules";
-import WorkflowSettings from "./workflow/WorkFlowSettings";
-import QueueDetails from "./workflow/QueueDetails";
-import OperationsPortal from "./operations/OperationsPortal";
-import WorkQueue from "./operations/WorkQueue";
-import OperationsClaims from "./operations/OperationClaims";
-import OperationsTasks from "./operations/OperationsTasks";
-import OperationsCustomers from "./operations/OperationsCustomers";
-import OperationsDocuments from "./operations/OperationDocuments";
-import OperationsReports from "./operations/OperationsReports";
-import SLADashboard from "./operations/SLADashboard";
-import OperationsCommunications from "./operations/OperationsCommunications";
-import AdminDashboard from "./admin/AdminDashboard";
-import AdminUsers from "./admin/AdminUsers";
-import AdminRoles from "./admin/AdminRoles";
-import AdminPermissions from "./admin/AdminPermissions";
-import AdminConfiguration from "./admin/AdminConfiguration";
-import AdminAudit from "./admin/AdminAudit";
-import AdminReports from "./admin/AdminReports";
-import AdminFeatureFlags from "./admin/AdminFeatureFlags";
-import AdminSystemHealth from "./admin/AdminSystemHealth";
-import KnowledgeDashboard from "./Knowledge/KnowledgeDashboard";
-import Articles from "./Knowledge/Articles";
-import FAQs from "./Knowledge/FAQs";
-import Tutorials from "./Knowledge/Tutorials";
-import ProcessGuides from "./Knowledge/ProcessGuides";
-import KnowledgeSearch from "./Knowledge/KnowledgeSearch";
-import KnowledgeCategories from "./Knowledge/KnowledgeCategories";
-import KnowledgeTags from "./Knowledge/KnowledgeTags";
-import KnowledgeVersioning from "./Knowledge/KnowledgeVersioning";
-import PublishingWorkflow from "./Knowledge/PublishingWorkflow";
 import CommunicationProvider from "./communications/CommunicationContext";
-import CommunicationDashboard from "./communications/CommunicationDashboard";
-import Conversations from "./communications/Conversations";
-import ConversationDetails from "./communications/ConversationDetails";
-import CommunicationTemplates from "./communications/CommunicationTemplates";
-import Broadcasts from "./communications/Broadcasts";
-import DeliveryReports from "./communications/DeliveryReports";
-import CommunicationSettings from "./communications/CommunicationSettings";
 import NotificationProvider from "./notification/NotificationContext";
-import NotificationDashboard from "./notification/NotificationDashboard";
-import Notifications from "./notification/Notifications";
-import NotificationPreferences from "./notification/NotificationPreferences";
-import ReminderSettings from "./notification/ReminderSettings";
-import NotificationChannels from "./notification/NotificationChannels";
-import NotificationHistory from "./notification/NotificationHistory";
-import NotificationSetting from "./notification/NotificationSetting";
 import PaymentProvider from "./payment/PaymentContext";
-import PaymentDashboard from "./payment/PaymentDashboard";
-import Payment from "./payment/Payment";
-import PaymentHistory from "./payment/PaymentHistory";
-import PaymentDetails from "./payment/PaymentDetails";
-import RefundRequests from "./payment/RefundRequests";
-import Invoices from "./payment/Invoices";
-import BillingHistory from "./payment/BillingHistory";
-import ProtectedRoute from "./components/ProtectedRoute";
-import Login from "./pages/Login";
 import ReportingProvider from "./reporting/ReportingContext";
-import ReportingDashboard from "./reporting/ReportingDashboard";
-import DailyReports from "./reporting/DailyReports";
-import WeeklyReports from "./reporting/WeeklyReports";
-import MonthlyReports from "./reporting/MontlyReports";
-import SLAReports from "./reporting/SALReports";
-import ProductivityReports from "./reporting/ProductivityReports";
-import ExecutiveDashboard from "./reporting/ExecutiveDashboard";
-import OperationsDashboard from "./reporting/OperationsDashboard";
-import CustomReports from "./reporting/CustomReports";
-import FinancialDashboard from "./reporting/FinancialDashboard";
-import ReportTrends from "./reporting/ReportTrends";
-import ReportExport from "./reporting/ReportExport";
+import ProtectedRoute from "./components/ProtectedRoute";
+import { AuthProvider } from "./auth/AuthContext";
+import RouteAccess from "./auth/RouteAccess";
+import ErrorBoundary from "./components/ErrorBoundary";
+import DataStatus from "./data/DataStatus";
 
+const Home = lazy(() => import("./pages/Home"));
+const About = lazy(() => import("./pages/About"));
+const Services = lazy(() => import("./pages/Services"));
+const Pricing = lazy(() => import("./pages/Pricing"));
+const FAQ = lazy(() => import("./pages/FAQ"));
+const Contact = lazy(() => import("./pages/Contact"));
+const Register = lazy(() => import("./pages/Register"));
+const Login = lazy(() => import("./pages/Login"));
+const PasswordRecovery = lazy(() => import("./pages/PasswordRecovery"));
+const ConfirmEmail = lazy(() => import("./pages/ConfirmEmail"));
+const SupportInbox = lazy(() => import("./operations/SupportInbox"));
+const IdentityReviews = lazy(() => import("./operations/IdentityReviews"));
+const Legal = lazy(() => import("./pages/Legal"));
+const EmailVerification = lazy(() => import("./pages/EmailVerification"));
+const MobileVerification = lazy(() => import("./pages/MobileVerification"));
+const Welcome = lazy(() => import("./pages/Welcome"));
+
+const PersonalDetails = lazy(() => import("./pages/PersonalDetails"));
+const CustomerDashboard = lazy(() => import("./pages/CustomerDashboard"));
+const ContactInfo = lazy(() => import("./pages/ContactInfo"));
+const AddressManagement = lazy(() => import("./pages/AddressManagement"));
+const EmergencyContacts = lazy(() => import("./pages/EmergencyContacts"));
+const PreferredLanguage = lazy(() => import("./pages/PreferredLanguage"));
+const ProfilePhoto = lazy(() => import("./pages/ProfilePhoto"));
+const IdentityVerification = lazy(() => import("./pages/IdentityVerification"));
+const PasswordChange = lazy(() => import("./pages/PasswordChange"));
+const NotificationSettings = lazy(() => import("./pages/NotificationSettings"));
+
+const AddPolicy = lazy(() => import("./policy/AddPolicy"));
+const RenewalReminder = lazy(() => import("./policy/RenewalReminder"));
+const PolicyCategories = lazy(() => import("./policy/PolicyCategories"));
+const PolicyDetails = lazy(() => import("./policy/PolicyDetails"));
+const EditPolicy = lazy(() => import("./policy/EditPolicy"));
+const PolicyDashboard = lazy(() => import("./policy/PolicyDashboard"));
+const PolicyAttachments = lazy(() => import("./policy/PolicyAttachments"));
+
+const ClaimAudit = lazy(() => import("./claim/ClaimAudit"));
+const ClaimClosure = lazy(() => import("./claim/ClaimClosure"));
+const ClaimTimeline = lazy(() => import("./claim/ClaimTimeline"));
+const ClaimDetails = lazy(() => import("./claim/ClaimDetails"));
+const ClaimDashboard = lazy(() => import("./claim/ClaimDashboard"));
+const ClaimWizard = lazy(() => import("./claim/ClaimWizard"));
+
+const DocumentUpload = lazy(() => import("./document/DocumentUpload"));
+const DocumentDetails = lazy(() => import("./document/DocumentDetails"));
+const DocumentDashboard = lazy(() => import("./document/DocumentDashboard"));
+
+const WorkflowDashboard = lazy(() => import("./workflow/WorkFlowDashboard"));
+const AssignmentRules = lazy(() => import("./workflow/AssignmentRules"));
+const WorkflowSettings = lazy(() => import("./workflow/WorkFlowSettings"));
+const QueueDetails = lazy(() => import("./workflow/QueueDetails"));
+
+const OperationsPortal = lazy(() => import("./operations/OperationsPortal"));
+const WorkQueue = lazy(() => import("./operations/WorkQueue"));
+const OperationsClaims = lazy(() => import("./operations/OperationClaims"));
+const OperationsTasks = lazy(() => import("./operations/OperationsTasks"));
+const OperationsCustomers = lazy(() => import("./operations/OperationsCustomers"));
+const OperationsDocuments = lazy(() => import("./operations/OperationDocuments"));
+const OperationsReports = lazy(() => import("./operations/OperationsReports"));
+const SLADashboard = lazy(() => import("./operations/SLADashboard"));
+const OperationsCommunications = lazy(() => import("./operations/OperationsCommunications"));
+
+const AdminDashboard = lazy(() => import("./admin/AdminDashboard"));
+const AdminUsers = lazy(() => import("./admin/AdminUsers"));
+const AdminRoles = lazy(() => import("./admin/AdminRoles"));
+const AdminPermissions = lazy(() => import("./admin/AdminPermissions"));
+const AdminConfiguration = lazy(() => import("./admin/AdminConfiguration"));
+const AdminAudit = lazy(() => import("./admin/AdminAudit"));
+const AdminReports = lazy(() => import("./admin/AdminReports"));
+const AdminFeatureFlags = lazy(() => import("./admin/AdminFeatureFlags"));
+const AdminSystemHealth = lazy(() => import("./admin/AdminSystemHealth"));
+
+const KnowledgeDashboard = lazy(() => import("./Knowledge/KnowledgeDashboard"));
+const Articles = lazy(() => import("./Knowledge/Articles"));
+const FAQs = lazy(() => import("./Knowledge/FAQs"));
+const Tutorials = lazy(() => import("./Knowledge/Tutorials"));
+const ProcessGuides = lazy(() => import("./Knowledge/ProcessGuides"));
+const KnowledgeSearch = lazy(() => import("./Knowledge/KnowledgeSearch"));
+const KnowledgeCategories = lazy(() => import("./Knowledge/KnowledgeCategories"));
+const KnowledgeTags = lazy(() => import("./Knowledge/KnowledgeTags"));
+const KnowledgeVersioning = lazy(() => import("./Knowledge/KnowledgeVersioning"));
+const PublishingWorkflow = lazy(() => import("./Knowledge/PublishingWorkflow"));
+
+const CommunicationDashboard = lazy(() => import("./communications/CommunicationDashboard"));
+const Conversations = lazy(() => import("./communications/Conversations"));
+const ConversationDetails = lazy(() => import("./communications/ConversationDetails"));
+const CommunicationTemplates = lazy(() => import("./communications/CommunicationTemplates"));
+const Broadcasts = lazy(() => import("./communications/Broadcasts"));
+const DeliveryReports = lazy(() => import("./communications/DeliveryReports"));
+const CommunicationSettings = lazy(() => import("./communications/CommunicationSettings"));
+
+const NotificationDashboard = lazy(() => import("./notification/NotificationDashboard"));
+const Notifications = lazy(() => import("./notification/Notifications"));
+const NotificationPreferences = lazy(() => import("./notification/NotificationPreferences"));
+const ReminderSettings = lazy(() => import("./notification/ReminderSettings"));
+const NotificationChannels = lazy(() => import("./notification/NotificationChannels"));
+const NotificationHistory = lazy(() => import("./notification/NotificationHistory"));
+const NotificationSetting = lazy(() => import("./notification/NotificationSetting"));
+
+const PaymentDashboard = lazy(() => import("./payment/PaymentDashboard"));
+const Payment = lazy(() => import("./payment/Payment"));
+const PaymentHistory = lazy(() => import("./payment/PaymentHistory"));
+const PaymentDetails = lazy(() => import("./payment/PaymentDetails"));
+const RefundRequests = lazy(() => import("./payment/RefundRequests"));
+const Invoices = lazy(() => import("./payment/Invoices"));
+const BillingHistory = lazy(() => import("./payment/BillingHistory"));
+
+const ReportingDashboard = lazy(() => import("./reporting/ReportingDashboard"));
+const DailyReports = lazy(() => import("./reporting/DailyReports"));
+const WeeklyReports = lazy(() => import("./reporting/WeeklyReports"));
+const MonthlyReports = lazy(() => import("./reporting/MonthlyReports"));
+const SLAReports = lazy(() => import("./reporting/SLAReports"));
+const ProductivityReports = lazy(() => import("./reporting/ProductivityReports"));
+const ExecutiveDashboard = lazy(() => import("./reporting/ExecutiveDashboard"));
+const OperationsDashboard = lazy(() => import("./reporting/OperationsDashboard"));
+const CustomReports = lazy(() => import("./reporting/CustomReports"));
+const FinancialDashboard = lazy(() => import("./reporting/FinancialDashboard"));
+const ReportTrends = lazy(() => import("./reporting/ReportTrends"));
+const ReportExport = lazy(() => import("./reporting/ReportExport"));
+
+
+function PageLoader() {
+  return (
+    <div
+      style={{
+        minHeight: "80vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "1.1rem",
+        color: "#64748b",
+      }}
+    >
+      Loading page...
+    </div>
+  );
+}
 
 function App() {
   return (
     <BrowserRouter>
+      <ErrorBoundary>
+      <AuthProvider>
+      <RouteAccess>
+      <DataStatus />
       <PolicyProvider>
         <ClaimProvider>
           <DocumentProvider>
@@ -126,7 +169,8 @@ function App() {
                 <NotificationProvider>
                   <PaymentProvider>
                     <ReportingProvider>
-                      <Routes>
+                      <Suspense fallback={<PageLoader />}>
+                        <Routes>
                         <Route
                           path="/"
                           element={<Home />}
@@ -161,6 +205,13 @@ function App() {
                           path="/register"
                           element={<Register />}
                         />
+                        <Route path="/privacy" element={<Legal />} />
+                        <Route path="/terms" element={<Legal />} />
+                        <Route path="/forgot-password" element={<PasswordRecovery />} />
+                        <Route path="/reset-password" element={<PasswordRecovery />} />
+                        <Route path="/confirm-email" element={<ConfirmEmail />} />
+                        <Route path="/ops/support" element={<SupportInbox />} />
+                        <Route path="/ops/identity-reviews" element={<IdentityReviews />} />
                         <Route
                           path="/login"
                           element={<Login />}
@@ -262,6 +313,7 @@ function App() {
                           path="/policies/:id/reminder"
                           element={<RenewalReminder />}
                         />
+                        <Route path="/policies/:id/attachments" element={<PolicyAttachments />} />
 
                         <Route
                           path="/claims"
@@ -339,20 +391,6 @@ function App() {
                           path="/workflow/:id"
                           element={
                             <QueueDetails />
-                          }
-                        />
-
-                        <Route
-                          path="/ops"
-                          element={
-                            <OperationsPortal />
-                          }
-                        />
-
-                        <Route
-                          path="/ops/queue"
-                          element={
-                            <WorkQueue />
                           }
                         />
 
@@ -700,11 +738,12 @@ function App() {
                         />
 
                         <Route
-                          path="/reports/customer"
+                          path="/reports/dashboard"
                           element={
                             <ReportingDashboard />
                           }
                         />
+                        <Route path="/reports" element={<ReportingDashboard />} />
 
                         <Route
                           path="/reports/daily"
@@ -758,7 +797,7 @@ function App() {
                         <Route
                           path="/reports/customer"
                           element={
-                            <CustomReports />
+                            <CustomerReport />
                           }
                         />
 
@@ -790,8 +829,10 @@ function App() {
                           }
                         />
 
+                        <Route path="*" element={<main style={{ padding: '4rem', textAlign: 'center' }}><h1>Page not found</h1><a href="/">Return home</a></main>} />
                       </Routes>
-                    </ReportingProvider>
+                    </Suspense>
+                  </ReportingProvider>
                   </PaymentProvider>
                 </NotificationProvider>
               </CommunicationProvider>
@@ -799,6 +840,9 @@ function App() {
           </DocumentProvider>
         </ClaimProvider>
       </PolicyProvider>
+      </RouteAccess>
+      </AuthProvider>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }

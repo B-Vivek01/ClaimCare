@@ -1,3 +1,4 @@
+import { requireBackend } from "../backend/client";
 import { useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -94,17 +95,9 @@ function Contact() {
     setErrors({});
     setStatus("loading");
 
-    /*
-     * Backend integration point.
-     *
-     * Replace this simulated request with the actual
-     * ClaimCare contact API when the backend is available.
-     */
-
     try {
-      await new Promise((resolve) =>
-        setTimeout(resolve, 1500)
-      );
+      const { error } = await requireBackend().rpc('submit_support_request', { details: formData });
+      if (error) throw error;
 
       setStatus("success");
 
@@ -117,6 +110,7 @@ function Contact() {
         message: ""
       });
     } catch (error) {
+      setErrors({ general: error.message || "Your request could not be submitted." });
       setStatus("error");
     }
   };

@@ -9,7 +9,6 @@ import {
   useSearchParams,
 } from "react-router-dom";
 
-import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
 import { useClaims } from "./ClaimContext";
@@ -121,15 +120,17 @@ function ClaimWizard() {
       [formData.template]
     );
 
+  const activeDraftId=draft?.id;
+  const draftStep=draft?.wizardStep;
   useEffect(() => {
-    if (!draft) {
+    if (!activeDraftId) {
       return;
     }
 
     setStep(
-      draft.wizardStep || 0
+      draftStep || 0
     );
-  }, [draft]);
+  }, [activeDraftId,draftStep]);
 
   const handleChange = (
     event
@@ -218,51 +219,20 @@ function ClaimWizard() {
     );
   };
 
-  const saveDraft = () => {
+  const saveDraft = async () => {
+    if (saving) return;
     setSaving(true);
-
-    const data = {
-      ...formData,
-
-      status: "Draft",
-
-      wizardStep: step,
-
-      progress: Math.round(
-        (step /
-          steps.length) *
-          100
-      ),
-
-      expectedNextStep:
-        "Continue completing the claim.",
-    };
-
-    if (draft) {
-      updateClaim(
-        draft.id,
-        data
-      );
-    } else {
-      const created =
-        createClaim(data);
-
-      navigate(
-        `/claims/new?draft=${created.id}`,
-        {
-          replace: true,
-        }
-      );
-    }
-
-    setTimeout(() => {
-      setSaving(false);
+    try {
+      const data = { ...formData, status: 'Draft', wizardStep: step, progress: Math.round(step / steps.length * 100), expectedNextStep: 'Continue completing the claim.' };
+      if (draft) {
+        if (!await updateClaim(draft.id, data)) return;
+      } else {
+        const created = await createClaim(data);
+        navigate(`/claims/new?draft=${created.id}`, { replace: true });
+      }
       setSaved(true);
-
-      setTimeout(() => {
-        setSaved(false);
-      }, 2000);
-    }, 500);
+    } catch (error) { window.dispatchEvent(new CustomEvent('claimcare:data', { detail: { error: error.message } })); }
+    finally { setSaving(false); }
   };
 
   const nextStep = () => {
@@ -289,78 +259,25 @@ function ClaimWizard() {
     }
   };
 
-  const submitClaim = () => {
-    if (!validateStep()) {
-      return;
+  const submitClaim = async () => {
+    if (saving) return;
+    const invalid = {};
+    for (const field of ['policyNumber', 'category', 'template', 'incidentDate', 'incidentLocation', 'incidentDescription']) {
+      if (!String(formData[field] || '').trim()) invalid[field] = 'This field is required.';
     }
-
-    if (!draft) {
-      const claim =
-        createClaim({
-          ...formData,
-
-          status: "Submitted",
-
-          progress: 100,
-
-          expectedNextStep:
-            "Claim submitted. Wait for review.",
-
-          timeline: [
-            {
-              date: new Date()
-                .toISOString()
-                .split("T")[0],
-
-              title:
-                "Claim Submitted",
-
-              description:
-                "Claim was submitted for review.",
-            },
-          ],
-        });
-
-      navigate(
-        `/claims/${claim.id}`
-      );
-
-      return;
-    }
-
-    updateClaim(
-      draft.id,
-      {
-        ...formData,
-
-        status: "Submitted",
-
-        progress: 100,
-
-        expectedNextStep:
-          "Claim submitted. Wait for review.",
-
-        timeline: [
-          ...(draft.timeline || []),
-
-          {
-            date: new Date()
-              .toISOString()
-              .split("T")[0],
-
-            title:
-              "Claim Submitted",
-
-            description:
-              "Claim was submitted for review.",
-          },
-        ],
+    if (formData.incidentDate && formData.incidentDate > new Date().toLocaleDateString('en-CA')) invalid.incidentDate = 'Incident date cannot be in the future.';
+    if (Object.keys(invalid).length) { setErrors(invalid); setStep(invalid.policyNumber || invalid.category || invalid.template ? 0 : 1); return; }
+    setSaving(true);
+    try {
+      const data = { ...formData, status: 'Submitted', progress: 25, expectedNextStep: 'Claim submitted. Wait for review.', timeline: [...(draft?.timeline || []), { date: new Date().toISOString(), title: 'Claim Submitted', description: 'Claim was submitted for review.' }] };
+      if (draft) {
+        if (await updateClaim(draft.id, data)) navigate(`/claims/${draft.id}`);
+      } else {
+        const claim = await createClaim(data);
+        navigate(`/claims/${claim.id}`);
       }
-    );
-
-    navigate(
-      `/claims/${draft.id}`
-    );
+    } catch (error) { window.dispatchEvent(new CustomEvent('claimcare:data', { detail: { error: error.message } })); }
+    finally { setSaving(false); }
   };
 
   return (
@@ -522,7 +439,7 @@ function ClaimWizard() {
                   previousStep
                 }
                 disabled={
-                  step === 0
+                  step === 0 || saving
                 }
               >
                 ← Previous
@@ -544,6 +461,7 @@ function ClaimWizard() {
                 <button
                   className="claim-primary-button"
                   onClick={nextStep}
+                  disabled={saving}
                 >
                   Next →
                 </button>
@@ -553,6 +471,7 @@ function ClaimWizard() {
                 <button
                   className="claim-primary-button"
                   onClick={submitClaim}
+                  disabled={saving}
                 >
                   Submit Claim
                 </button>

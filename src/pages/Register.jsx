@@ -4,10 +4,8 @@ import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 
-import { auth, db } from "../firebase/Firebase.jsx";
+import { requireBackend } from "../backend/client";
 
 function Register() {
   const navigate = useNavigate();
@@ -117,36 +115,15 @@ function Register() {
     setStatus("loading");
 
     try {
-      /*
-       * STEP 1:
-       * Create Firebase Authentication account
-       */
-      const userCredential =
-        await createUserWithEmailAndPassword(
-          auth,
-          formData.email.trim(),
-          formData.password
-        );
-
-      const user = userCredential.user;
-
-      // Save the registered customer's details in Firestore
-      await setDoc(doc(db, "customers", user.uid), {
-        uid: user.uid,
-        name: formData.name.trim(),
-        email: formData.email.trim(),
-        mobile: formData.mobile.trim(),
-        role: "customer", // default role
-        acceptTerms: formData.acceptTerms,
-        acceptPrivacy: formData.acceptPrivacy,
-        createdAt: serverTimestamp(),
+      const { error } = await requireBackend().auth.signUp({
+        email: formData.email.trim(), password: formData.password,
+        options: { emailRedirectTo: window.location.origin + '/login', data: {
+          name: formData.name.trim(), mobile: formData.mobile.trim(),
+          acceptTerms: formData.acceptTerms, acceptPrivacy: formData.acceptPrivacy,
+        } },
       });
-
-      /*
-       * STEP 3:
-       * Registration successful
-       */
-      setStatus("verification");
+      if (error) throw error;
+      setStatus('verification');
 
     } catch (error) {
       console.error("Registration error:", error);
@@ -298,7 +275,7 @@ function Register() {
 
               <p>
                 Your ClaimCare account has been
-                successfully created.
+                requested. Check your email for the confirmation link before signing in.
               </p>
 
               <button
@@ -622,3 +599,5 @@ function Register() {
 }
 
 export default Register;
+
+

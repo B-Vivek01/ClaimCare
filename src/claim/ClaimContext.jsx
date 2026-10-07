@@ -1,297 +1,24 @@
+import { useRecords } from "../data/useRecords";
+import { useAuth } from "../auth/AuthContext";
 import {
   createContext,
   useContext,
-  useEffect,
-  useState,
 } from "react";
 
 const ClaimContext = createContext();
 
-const initialClaims = [
-  {
-    id: "CLM-1001",
-    claimNumber: "CC-2026-1001",
-
-    policyNumber: "HLT-2026-1001",
-
-    customerName: "Manasa Rayavarapu",
-
-    category: "Health",
-    template: "Hospitalization",
-
-    status: "Under Review",
-
-    priority: "High",
-
-    progress: 65,
-
-    incidentDate: "2026-07-20",
-
-    incidentType: "Hospitalization",
-
-    incidentLocation: "Hyderabad",
-
-    incidentDescription:
-      "Hospitalization due to medical treatment.",
-
-    notes:
-      "Hospital bills and discharge summary are available.",
-
-    assignedSpecialist:
-      "Rahul Sharma",
-
-    sla: {
-      status: "On Track",
-      remainingHours: 36,
-    },
-
-    outstandingActions: [
-      {
-        id: "TASK-001",
-        title: "Upload discharge summary",
-        completed: false,
-      },
-      {
-        id: "TASK-002",
-        title: "Confirm hospital details",
-        completed: false,
-      },
-    ],
-
-    tasks: [
-      {
-        id: "TASK-001",
-        title: "Upload discharge summary",
-        status: "Pending",
-      },
-      {
-        id: "TASK-002",
-        title: "Confirm hospital details",
-        status: "Pending",
-      },
-    ],
-
-    messages: [
-      {
-        id: "MSG-001",
-        sender: "Rahul Sharma",
-        message:
-          "Please upload the discharge summary.",
-        date: "2026-07-25",
-      },
-    ],
-
-    documents: [
-      {
-        id: "DOC-001",
-        name: "Hospital_Bill.pdf",
-        type: "PDF",
-        status: "Accepted",
-      },
-    ],
-
-    tags: [
-      "Hospitalization",
-      "Medical",
-    ],
-
-    timeline: [
-      {
-        date: "2026-07-20",
-        title: "Incident Reported",
-        description:
-          "Customer reported the incident.",
-      },
-      {
-        date: "2026-07-21",
-        title: "Claim Created",
-        description:
-          "Claim was created successfully.",
-      },
-      {
-        date: "2026-07-22",
-        title: "Documents Received",
-        description:
-          "Initial supporting documents were received.",
-      },
-      {
-        date: "2026-07-23",
-        title: "Review Started",
-        description:
-          "Claim specialist started reviewing the claim.",
-      },
-    ],
-
-    milestones: [
-      {
-        title: "Claim Created",
-        status: "completed",
-      },
-      {
-        title: "Documents Submitted",
-        status: "completed",
-      },
-      {
-        title: "Claim Review",
-        status: "current",
-      },
-      {
-        title: "Decision",
-        status: "upcoming",
-      },
-      {
-        title: "Closure",
-        status: "upcoming",
-      },
-    ],
-
-    statusHistory: [
-      {
-        date: "2026-07-21",
-        from: "Draft",
-        to: "Submitted",
-      },
-      {
-        date: "2026-07-23",
-        from: "Submitted",
-        to: "Under Review",
-      },
-    ],
-
-    expectedNextStep:
-      "Upload the discharge summary and confirm hospital details.",
-
-    internalNotes: [
-      {
-        id: "IN-001",
-        author: "Rahul Sharma",
-        note:
-          "Initial review completed.",
-        date: "2026-07-23",
-      },
-    ],
-
-    createdAt: "2026-07-21",
-
-    closure: {
-      checklistCompleted: false,
-      feedbackRequested: false,
-      rating: null,
-      notes: "",
-    },
-
-    archived: false,
-  },
-
-  {
-    id: "CLM-1002",
-    claimNumber: "CC-2026-1002",
-
-    policyNumber: "MTR-2026-2001",
-
-    customerName: "Manasa Rayavarapu",
-
-    category: "Motor",
-    template: "Vehicle Accident",
-
-    status: "Draft",
-
-    priority: "Medium",
-
-    progress: 25,
-
-    incidentDate: "",
-    incidentType: "Vehicle Accident",
-    incidentLocation: "",
-    incidentDescription: "",
-
-    notes: "",
-
-    assignedSpecialist: null,
-
-    sla: {
-      status: "Not Started",
-      remainingHours: null,
-    },
-
-    outstandingActions: [],
-
-    tasks: [],
-
-    messages: [],
-
-    documents: [],
-
-    tags: ["Motor"],
-
-    timeline: [],
-
-    milestones: [
-      {
-        title: "Claim Information",
-        status: "current",
-      },
-      {
-        title: "Incident Information",
-        status: "upcoming",
-      },
-      {
-        title: "Documents",
-        status: "upcoming",
-      },
-      {
-        title: "Review",
-        status: "upcoming",
-      },
-    ],
-
-    statusHistory: [],
-
-    expectedNextStep:
-      "Continue entering incident information.",
-
-    internalNotes: [],
-
-    createdAt: "2026-08-01",
-
-    closure: {
-      checklistCompleted: false,
-      feedbackRequested: false,
-      rating: null,
-      notes: "",
-    },
-
-    archived: false,
-  },
-];
-
 function ClaimProvider({ children }) {
-  const [claims, setClaims] = useState(() => {
-    const stored =
-      localStorage.getItem(
-        "claimcare_claims"
-      );
-
-    return stored
-      ? JSON.parse(stored)
-      : initialClaims;
-  });
-
-  useEffect(() => {
-    localStorage.setItem(
-      "claimcare_claims",
-      JSON.stringify(claims)
-    );
-  }, [claims]);
+  const [claims, setClaims, loading] = useRecords("claims");
+  const { user, profile } = useAuth();
+  const [internalNotes, setInternalNotes] = useRecords("claim_internal");
 
   const getClaim = (id) => {
-    return claims.find(
-      (claim) => claim.id === id
-    );
+    const claim = claims.find(item => item.id === id);
+    return claim ? { ...claim, internalNotes: internalNotes.filter(item => item.claimId === id) } : undefined;
   };
 
-  const createClaim = (data) => {
-    const id = `CLM-${Date.now()}`;
+  const createClaim = async (data) => {
+    const id = `CLM-${crypto.randomUUID()}`;
 
     const claim = {
       id,
@@ -302,7 +29,7 @@ function ClaimProvider({ children }) {
       ).slice(-5)}`,
 
       customerName:
-        "Manasa Rayavarapu",
+        profile?.name || user?.displayName || user?.email || "",
 
       status: "Draft",
 
@@ -355,11 +82,12 @@ function ClaimProvider({ children }) {
       ...data,
     };
 
-    setClaims((previous) => [
+    const saved = await setClaims((previous) => [
       claim,
       ...previous,
     ]);
 
+    if (!saved) throw new Error('Claim could not be saved. Please retry.');
     return claim;
   };
 
@@ -367,12 +95,12 @@ function ClaimProvider({ children }) {
     id,
     updatedData
   ) => {
-    setClaims((previous) =>
+    return setClaims((previous) =>
       previous.map((claim) =>
         claim.id === id
           ? {
               ...claim,
-              ...updatedData,
+              ...(typeof updatedData === 'function' ? updatedData(claim) : updatedData),
             }
           : claim
       )
@@ -383,7 +111,7 @@ function ClaimProvider({ children }) {
     id,
     newStatus
   ) => {
-    setClaims((previous) =>
+    return setClaims((previous) =>
       previous.map((claim) => {
         if (claim.id !== id) {
           return claim;
@@ -396,6 +124,8 @@ function ClaimProvider({ children }) {
           ...claim,
 
           status: newStatus,
+          progress: ({Draft:0,Submitted:25,'Under Review':50,'In Review':50,Escalated:60,Approved:75,Rejected:100,Closed:100,'Reopen Requested':25})[newStatus] ?? claim.progress,
+          expectedNextStep: ({'Under Review':'A specialist is reviewing this claim.','In Review':'A specialist is reviewing this claim.',Escalated:'An escalated review is pending.',Approved:'Complete the closure review.',Rejected:'Contact support if you want to request reopening.',Closed:'Claim review is complete.','Reopen Requested':'Wait for staff to review the reopen request.'})[newStatus] || claim.expectedNextStep,
 
           statusHistory: [
             ...(claim.statusHistory || []),
@@ -432,47 +162,21 @@ function ClaimProvider({ children }) {
   };
 
   const archiveClaim = (id) => {
-    updateClaim(id, {
+    return updateClaim(id, {
       archived: true,
-      status: "Archived",
     });
   };
 
   const reopenClaim = (id) => {
-    updateClaimStatus(
-      id,
-      "Reopen Requested"
-    );
-
-    updateClaim(id, {
+    return updateClaim(id, {
+      status: "Reopen Requested",
       archived: false,
     });
   };
 
-  const addInternalNote = (
-    id,
-    note
-  ) => {
-    const claim = getClaim(id);
-
-    if (!claim) {
-      return;
-    }
-
-    updateClaim(id, {
-      internalNotes: [
-        ...(claim.internalNotes || []),
-
-        {
-          id: `IN-${Date.now()}`,
-          author: "Current User",
-          note,
-          date: new Date()
-            .toISOString()
-            .split("T")[0],
-        },
-      ],
-    });
+  const addInternalNote = (id, note) => {
+    if (!note.trim() || !getClaim(id)) return;
+    return setInternalNotes(previous => [...previous, { id: `IN-${crypto.randomUUID()}`, claimId: id, note: note.trim(), author: profile?.name || user?.email, date: new Date().toISOString() }]);
   };
 
   const addTag = (id, tag) => {
@@ -490,7 +194,7 @@ function ClaimProvider({ children }) {
       return;
     }
 
-    updateClaim(id, {
+    return updateClaim(id, {
       tags: [
         ...(claim.tags || []),
         tag.trim(),
@@ -508,7 +212,7 @@ function ClaimProvider({ children }) {
       return;
     }
 
-    updateClaim(id, {
+    return updateClaim(id, {
       tags: (
         claim.tags || []
       ).filter(
@@ -521,11 +225,12 @@ function ClaimProvider({ children }) {
     id,
     closure
   ) => {
-    updateClaim(id, {
+    return updateClaim(id, {
       closure,
     });
   };
 
+  if (loading) return <main aria-busy="true" style={{ padding: '4rem' }}>Loading claims…</main>;
   return (
     <ClaimContext.Provider
       value={{
@@ -554,3 +259,5 @@ export function useClaims() {
 }
 
 export default ClaimProvider;
+
+

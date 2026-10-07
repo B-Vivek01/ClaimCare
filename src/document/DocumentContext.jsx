@@ -1,82 +1,29 @@
+import { useRecords } from "../data/useRecords";
+import { storeFile } from "../data/files";
+import { useAuth } from "../auth/AuthContext";
 import {
   createContext,
   useContext,
-  useEffect,
-  useState,
 } from "react";
 
 const DocumentContext = createContext();
 
-const initialDocuments = [
-  {
-    id: "DOC-1001",
-    name: "Hospital_Bill.pdf",
-    category: "Medical",
-    folder: "Claims",
-    tags: ["hospital", "bill"],
-    type: "PDF",
-    size: 245000,
-    sizeLabel: "239 KB",
-    uploadedDate: "2026-08-01",
-    uploadedBy: "Manasa Rayavarapu",
-    reviewStatus: "Accepted",
-    scanStatus: "Accepted",
-    version: 1,
-    metadata: {
-      description: "Hospital bill document",
-      reference: "CLM-1001",
-    },
-    claimId: "CLM-1001",
-  },
-  {
-    id: "DOC-1002",
-    name: "Policy_Document.pdf",
-    category: "Policy",
-    folder: "Policies",
-    tags: ["policy", "insurance"],
-    type: "PDF",
-    size: 512000,
-    sizeLabel: "500 KB",
-    uploadedDate: "2026-07-28",
-    uploadedBy: "Manasa Rayavarapu",
-    reviewStatus: "Pending",
-    scanStatus: "Accepted",
-    version: 1,
-    metadata: {
-      description: "Insurance policy document",
-      reference: "HLT-2026-1001",
-    },
-    claimId: null,
-  },
-];
-
 function DocumentProvider({ children }) {
-  const [documents, setDocuments] = useState(() => {
-    const stored = localStorage.getItem(
-      "claimcare_documents"
-    );
+  const [documents, setDocuments, loading] = useRecords("documents");
+  const { user, profile } = useAuth();
 
-    return stored
-      ? JSON.parse(stored)
-      : initialDocuments;
-  });
-
-  useEffect(() => {
-    localStorage.setItem(
-      "claimcare_documents",
-      JSON.stringify(documents)
-    );
-  }, [documents]);
-
-  const addDocuments = (files) => {
-    const newDocuments = files.map((file) => ({
+  const addDocuments = async (files, claimId = null, category = 'Other') => {
+    const uploaded = [];
+    for (const file of files) uploaded.push({ name: file.name, size: file.size, type: file.type, ...await storeFile(file) });
+    const newDocuments = uploaded.map((file) => ({
       id: `DOC-${Date.now()}-${Math.random()
         .toString(36)
         .slice(2, 7)}`,
 
       name: file.name,
 
-      category: "Other",
+      category,
+      claimId,
 
       folder: "General",
 
@@ -100,11 +47,11 @@ function DocumentProvider({ children }) {
         .split("T")[0],
 
       uploadedBy:
-        "Current User",
+        profile?.name || user?.email || "",
 
       reviewStatus: "Pending",
 
-      scanStatus: "Scanning",
+      scanStatus: "Not scanned",
 
       version: 1,
 
@@ -113,18 +60,17 @@ function DocumentProvider({ children }) {
         reference: "",
       },
 
-      fileUrl: URL.createObjectURL(
-        file
-      ),
+      storagePath: file.storagePath,
 
       fileType: file.type,
     }));
 
-    setDocuments((previous) => [
+    const saved = await setDocuments((previous) => [
       ...newDocuments,
       ...previous,
     ]);
 
+    if (!saved) throw new Error('Document metadata could not be saved. Please retry.');
     return newDocuments;
   };
 
@@ -132,7 +78,7 @@ function DocumentProvider({ children }) {
     id,
     data
   ) => {
-    setDocuments((previous) =>
+    return setDocuments((previous) =>
       previous.map((document) =>
         document.id === id
           ? {
@@ -153,11 +99,12 @@ function DocumentProvider({ children }) {
     );
   };
 
-  const replaceDocument = (
+  const replaceDocument = async (
     id,
     file
   ) => {
-    setDocuments((previous) =>
+    const stored = await storeFile(file);
+    const saved = await setDocuments((previous) =>
       previous.map((document) => {
         if (document.id !== id) {
           return document;
@@ -185,10 +132,8 @@ function DocumentProvider({ children }) {
               ? "Image"
               : "File",
 
-          fileUrl:
-            URL.createObjectURL(
-              file
-            ),
+          ...stored,
+          versions: [...(document.versions || []), { version: document.version, fileUrl: document.fileUrl, storagePath: document.storagePath, name: document.name }],
 
           fileType:
             file.type,
@@ -197,8 +142,11 @@ function DocumentProvider({ children }) {
             document.version + 1,
 
           reviewStatus: "Pending",
+          reviewReason: "",
+          reviewedBy: null,
+          reviewedAt: null,
 
-          scanStatus: "Scanning",
+          scanStatus: "Not scanned",
 
           uploadedDate:
             new Date()
@@ -207,8 +155,10 @@ function DocumentProvider({ children }) {
         };
       })
     );
+    if (!saved) throw new Error('Replacement could not be saved. Please retry.');
   };
 
+  if (loading) return <main aria-busy="true" style={{ padding: '4rem' }}>Loading documents…</main>;
   return (
     <DocumentContext.Provider
       value={{
@@ -256,3 +206,4 @@ export function useDocuments() {
 }
 
 export default DocumentProvider;
+

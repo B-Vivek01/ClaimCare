@@ -1,102 +1,38 @@
-import { useEffect, useState } from "react";
+import { useClaims } from "../claim/ClaimContext";
+import { useNotification } from "../notification/NotificationContext";
+import { useState } from "react";
+import { useAuth } from "../auth/AuthContext";
+import { usePolicies } from "../policy/PolicyContext";
 import { Link, useNavigate } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { signOut } from "../backend/auth";
 
-import { auth, db } from "../firebase/Firebase.jsx";
+
+import { auth } from "../backend/session";
 
 function CustomerDashboard() {
     const navigate = useNavigate();
 
     const [profileOpen, setProfileOpen] = useState(false);
+    const {claims}=useClaims();
+    const {notifications}=useNotification();
 
-    // Firebase user
-    const [user, setUser] = useState(null);
+    const { user, profile: customer, loading, error: sessionError } = useAuth();
+    const { policies } = usePolicies();
+    const [actionError, setError] = useState("");
+    const error = actionError || sessionError;
+    const role = customer?.role || "customer";
+    const ownPolicies = policies.filter(policy => policy.ownerId === user?.uid);
+    const ownClaims=claims.filter(claim=>claim.ownerId===user?.uid);
+    const activeClaims=ownClaims.filter(claim=>!claim.archived && !['Closed','Settled','Rejected'].includes(claim.status));
+    const pendingTasks=ownClaims.flatMap(claim=>claim.tasks || []).filter(task=>task.status!=='Completed');
+    const unreadNotifications=notifications.filter(item=>item.ownerId===user?.uid && item.status==='Unread');
+    const completionFields=[customer?.name,customer?.email,customer?.mobile,customer?.dateOfBirth,customer?.preferredLanguage];
+    const completion=Math.round(completionFields.filter(Boolean).length/completionFields.length*100);
 
-    // Customer information from Firestore
-    const [customer, setCustomer] = useState(null);
-
-    // Loading state
-    const [loading, setLoading] = useState(true);
-
-    // Error state
-    const [error, setError] = useState("");
-    const [role, setRole] = useState("customer");
-    /*
-     * ============================================================
-     * FIREBASE AUTHENTICATION + CUSTOMER DATA
-     * ============================================================
-     */
-
-    useEffect(() => {
-        const unsubscribe = onAuthStateChanged(
-            auth,
-            async (currentUser) => {
-                /*
-                 * If there is no authenticated Firebase user,
-                 * redirect the customer to Login.
-                 */
-                if (!currentUser) {
-                    setUser(null);
-                    setCustomer(null);
-                    setLoading(false);
-
-                    navigate("/login", {
-                        replace: true,
-                    });
-
-                    return;
-                }
-
-                /*
-                 * Store authenticated Firebase user.
-                 */
-                setUser(currentUser);
-
-                try {
-
-                    console.log("Logged in UID:", currentUser.uid);
-
-                    const customerRef = doc(db, "customers", currentUser.uid);
-                    const customerSnapshot = await getDoc(customerRef);
-
-                    console.log("Document exists:", customerSnapshot.exists());
-
-                    if (customerSnapshot.exists()) {
-                        console.log("Firestore Data:", customerSnapshot.data());
-                        const data = customerSnapshot.data();
-
-                        setCustomer(data);
-                        setRole(data.role || "customer");
-                    } else {
-                        console.log("Looking for document ID:", currentUser.uid);
-                        setCustomer(null);
-                    }
-                } catch (firebaseError) {
-                    console.error(
-                        "Error loading customer data:",
-                        firebaseError
-                    );
-
-                    setError(
-                        "Unable to load your customer information."
-                    );
-                } finally {
-                    setLoading(false);
-                }
-            }
-        );
-
-        /*
-         * Cleanup Firebase authentication listener
-         * when component is unmounted.
-         */
-        return () => unsubscribe();
-    }, [navigate]);
 
     /*
      * ============================================================
@@ -132,7 +68,7 @@ function CustomerDashboard() {
     if (loading) {
         return (
             <>
-                <Navbar />
+                
 
                 <main
                     className="customer-dashboard-page"
@@ -167,11 +103,6 @@ function CustomerDashboard() {
 
     const customerName =
         customer?.name?.trim() || "Customer";
-
-    const customerEmail =
-        customer?.email ||
-        user?.email ||
-        "";
 
     const customerInitial =
         customerName.charAt(0).toUpperCase();
@@ -680,12 +611,10 @@ function CustomerDashboard() {
                                     Active Claims
                                 </span>
 
-                                <strong>
-                                    0
-                                </strong>
+                                <strong>{activeClaims.length}</strong>
 
                                 <small>
-                                    No active claims yet
+                                    {activeClaims.length ? "Claims awaiting completion" : "No active claims yet"}
                                 </small>
 
                             </div>
@@ -697,9 +626,7 @@ function CustomerDashboard() {
                                     Outstanding Tasks
                                 </span>
 
-                                <strong>
-                                    2
-                                </strong>
+                                <strong>{pendingTasks.length}</strong>
 
                                 <small>
                                     Tasks requiring attention
@@ -714,9 +641,7 @@ function CustomerDashboard() {
                                     Notifications
                                 </span>
 
-                                <strong>
-                                    3
-                                </strong>
+                                <strong>{unreadNotifications.length}</strong>
 
                                 <small>
                                     Unread notifications
@@ -731,9 +656,7 @@ function CustomerDashboard() {
                                     Profile Completion
                                 </span>
 
-                                <strong>
-                                    60%
-                                </strong>
+                                <strong>{completion}%</strong>
 
                                 <small>
                                     Complete your profile
@@ -771,7 +694,7 @@ function CustomerDashboard() {
                             </div>
 
 
-                            <div className="dashboard-empty-state">
+                            {activeClaims.length ? <div className="dashboard-claim-list">{activeClaims.slice(0,5).map(claim=><article className="dashboard-task" key={claim.id}><div><Link to={`/claims/${claim.id}`}>{claim.claimNumber || claim.id}</Link><p>{claim.category} · {claim.status}</p></div></article>)}</div> : <div className="dashboard-empty-state">
 
                                 <div className="dashboard-empty-icon">
                                     #
@@ -794,7 +717,7 @@ function CustomerDashboard() {
                                     Start a Claim
                                 </button>
 
-                            </div>
+                            </div>}
 
                         </section>
 
@@ -833,7 +756,7 @@ function CustomerDashboard() {
                                     </span>
 
                                     <p>
-                                        No recent activity.
+                                        {ownClaims.length ? `Latest claim: ${[...ownClaims].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))[0].claimNumber}` : "No recent claim activity."}
                                     </p>
 
                                 </div>
@@ -929,8 +852,7 @@ function CustomerDashboard() {
                                 </h2>
 
                                 <p>
-                                    Policy information will appear here
-                                    when available.
+                                    {ownPolicies.length ? `${ownPolicies.length} policy record(s), ${ownPolicies.filter(policy => policy.status === "Active" && !policy.archived).length} active.` : "No policy records yet."}
                                 </p>
 
                             </div>

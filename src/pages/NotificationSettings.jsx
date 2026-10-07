@@ -1,10 +1,12 @@
+import { useAuth } from "../auth/AuthContext";
+import { updateDoc } from "../backend/profiles";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
 function NotificationSettings() {
   const navigate = useNavigate();
+  const {user,profile} = useAuth();
 
   const defaultSettings = {
     email: true,
@@ -20,10 +22,10 @@ function NotificationSettings() {
   };
 
   const [settings, setSettings] =
-    useState(defaultSettings);
+    useState(profile?.notificationSettings || defaultSettings);
 
   const [savedSettings, setSavedSettings] =
-    useState(defaultSettings);
+    useState(profile?.notificationSettings || defaultSettings);
 
   const [status, setStatus] = useState("idle");
 
@@ -51,21 +53,12 @@ function NotificationSettings() {
     setStatus("saving");
 
     try {
-      /*
-       * BACKEND INTEGRATION POINT
-       *
-       * Send the notification settings to the
-       * authenticated customer preferences API.
-       */
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, 900)
-      );
+      await updateDoc({id:user.uid},{notificationSettings:settings});
 
       setSavedSettings(settings);
 
       setStatus("success");
-    } catch (error) {
+    } catch {
       setStatus("error");
     }
   };

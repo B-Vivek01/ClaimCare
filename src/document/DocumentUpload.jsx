@@ -1,3 +1,5 @@
+import { useClaims } from "../claim/ClaimContext";
+import { useSearchParams } from "react-router-dom";
 import {
   useRef,
   useState,
@@ -8,7 +10,6 @@ import {
   useNavigate,
 } from "react-router-dom";
 
-import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
 import { useDocuments } from "./DocumentContext";
@@ -26,6 +27,9 @@ const allowedTypes = [
 
 function DocumentUpload() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const {claims} = useClaims();
+  const [claimId,setClaimId]=useState(params.get("claim") || "");
 
   const inputRef =
     useRef(null);
@@ -46,8 +50,6 @@ function DocumentUpload() {
   const [uploading, setUploading] =
     useState(false);
 
-  const [progress, setProgress] =
-    useState(0);
 
   const [success, setSuccess] =
     useState(false);
@@ -124,49 +126,18 @@ function DocumentUpload() {
       );
     };
 
-  const uploadFiles =
-    () => {
-      if (!files.length) {
-        setErrors([
-          "Please select at least one file.",
-        ]);
-
-        return;
-      }
-
+  const uploadFiles = async () => {
+      if (!files.length) { setErrors(['Please select at least one file.']); return; }
       setUploading(true);
-
-      let currentProgress = 0;
-
-      const timer = setInterval(
-        () => {
-          currentProgress += 20;
-
-          setProgress(
-            currentProgress
-          );
-
-          if (
-            currentProgress >=
-            100
-          ) {
-            clearInterval(timer);
-
-            addDocuments(files);
-
-            setUploading(false);
-
-            setSuccess(true);
-
-            setTimeout(() => {
-              navigate(
-                "/documents"
-              );
-            }, 1000);
-          }
-        },
-        150
-      );
+      setErrors([]);
+      try {
+        if (claimId && !claims.some(claim=>claim.id===claimId)) throw new Error("Choose an available claim.");
+        await addDocuments(files,claimId || null);
+        setSuccess(true);
+        navigate('/documents');
+      } catch (error) {
+        setErrors([error.message || 'Upload failed. Please retry.']);
+      } finally { setUploading(false); }
     };
 
   return (
@@ -175,6 +146,7 @@ function DocumentUpload() {
       <main className="document-page">
 
         <div className="document-container">
+          <label htmlFor="upload-claim">Related claim (optional)</label><select id="upload-claim" value={claimId} onChange={event=>setClaimId(event.target.value)} disabled={uploading}><option value="">Unlinked document</option>{claims.map(claim=><option key={claim.id} value={claim.id}>{claim.claimNumber}</option>)}</select>
 
           <div className="document-header">
 
@@ -378,7 +350,7 @@ function DocumentUpload() {
 
             {uploading && (
 
-              <div className="document-upload-progress">
+              <div className="document-upload-progress" role="status" aria-busy="true">
 
                 <div>
 
@@ -386,21 +358,10 @@ function DocumentUpload() {
                     Uploading...
                   </span>
 
-                  <strong>
-                    {progress}%
-                  </strong>
+                  <strong>Please wait while files are stored.</strong>
 
                 </div>
 
-                <div className="document-progress-bar">
-
-                  <span
-                    style={{
-                      width: `${progress}%`,
-                    }}
-                  />
-
-                </div>
 
               </div>
 
@@ -477,3 +438,4 @@ function formatFileSize(
 }
 
 export default DocumentUpload;
+

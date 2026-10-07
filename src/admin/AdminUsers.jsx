@@ -1,3 +1,6 @@
+import { useProfiles } from "../backend/useProfiles";
+import { updateDoc } from "../backend/profiles";
+import { useAuth } from "../auth/AuthContext";
 import {
   useMemo,
   useState,
@@ -8,44 +11,10 @@ import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
-const initialUsers = [
-  {
-    id: "USR-1001",
-    name: "Arjun Sharma",
-    email: "arjun@claimcare.com",
-    role: "Claim Specialist",
-    status: "Active",
-    lastLogin: "13 Aug 2026, 09:12",
-  },
-  {
-    id: "USR-1002",
-    name: "Meena Rao",
-    email: "meena@claimcare.com",
-    role: "Document Reviewer",
-    status: "Active",
-    lastLogin: "13 Aug 2026, 08:45",
-  },
-  {
-    id: "USR-1003",
-    name: "Kiran Kumar",
-    email: "kiran@claimcare.com",
-    role: "Operations Manager",
-    status: "Active",
-    lastLogin: "12 Aug 2026, 18:20",
-  },
-  {
-    id: "USR-1004",
-    name: "Ravi Patel",
-    email: "ravi@claimcare.com",
-    role: "Customer Support Executive",
-    status: "Disabled",
-    lastLogin: "08 Aug 2026, 11:30",
-  },
-];
-
 function AdminUsers() {
-  const [users, setUsers] =
-    useState(initialUsers);
+  const { user:actor } = useAuth();
+  const [busy,setBusy] = useState(false);
+  const [users, setUsers] = useProfiles();
 
   const [search, setSearch] =
     useState("");
@@ -81,34 +50,24 @@ function AdminUsers() {
       status,
     ]);
 
-  const disableUser = (
-    id
-  ) => {
-    const confirmed =
-      window.confirm(
-        "Are you sure you want to disable this user?"
-      );
-
-    if (!confirmed) {
-      return;
-    }
-
-    setUsers(
-      (previous) =>
-        previous.map(
-          (user) =>
-            user.id === id
-              ? {
-                  ...user,
-                  status:
-                    user.status ===
-                    "Active"
-                      ? "Disabled"
-                      : "Active",
-                }
-              : user
-        )
-    );
+  const disableUser = async (id) => {
+    if (busy || id===actor?.uid) return;
+    const user = users.find(item=>item.id===id);
+    if (!user || !window.confirm('Change this account access status?')) return;
+    try {
+      setBusy(true);
+      const status = user.status==='Active'?'Disabled':'Active';
+      await updateDoc({id},{status,disabled:status==='Disabled'});
+      setUsers(previous=>previous.map(item=>item.id===id?{...item,status}:item));
+    } catch (error) { window.dispatchEvent(new CustomEvent('claimcare:data',{detail:{error:error.message}})); }
+    finally { setBusy(false); }
+  };
+  const changeRole = async (id,role) => {
+    if(busy || id===actor?.uid || !window.confirm(`Change this account role to ${role}?`)) return;
+    setBusy(true);
+    try { await updateDoc({id},{role});setUsers(previous=>previous.map(item=>item.id===id?{...item,role}:item)); }
+    catch(error) {window.dispatchEvent(new CustomEvent('claimcare:data',{detail:{error:error.message}}));}
+    finally {setBusy(false);}
   };
 
   return (
@@ -178,9 +137,7 @@ function AdminUsers() {
                 </h2>
               </div>
 
-              <button className="admin-primary-button">
-                + Create User
-              </button>
+              <p>New users register and confirm their email. Administrators assign their roles here.</p>
 
             </div>
 
@@ -266,9 +223,9 @@ function AdminUsers() {
                         </td>
 
                         <td>
-                          <span className="admin-role-badge">
-                            {user.role}
-                          </span>
+                          <select aria-label={`Role for ${user.email}`} value={user.role} disabled={busy || user.id===actor?.uid} onChange={event=>changeRole(user.id,event.target.value)}>
+                            <option value="customer">Customer</option><option value="operations">Operations</option><option value="admin">Administrator</option>
+                          </select>
                         </td>
 
                         <td>
@@ -285,22 +242,15 @@ function AdminUsers() {
                         </td>
 
                         <td>
-                          {user.lastLogin}
+                          {user.lastLogin || 'Not tracked'}
                         </td>
 
                         <td>
 
                           <div className="admin-table-actions">
 
-                            <button>
-                              Edit
-                            </button>
-
-                            <button>
-                              Reset Password
-                            </button>
-
                             <button
+                              disabled={busy || user.id===actor?.uid}
                               onClick={() =>
                                 disableUser(
                                   user.id

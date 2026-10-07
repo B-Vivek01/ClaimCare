@@ -8,12 +8,26 @@ import {
   useParams,
 } from "react-router-dom";
 
-import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
 import { useClaims } from "./ClaimContext";
+import { useAuth } from "../auth/AuthContext";
 
 function ClaimClosure() {
+  const { profile } = useAuth();
+  const staff = ['admin','operations'].includes(profile?.role);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const perform = async (action, destination) => {
+    if (busy) return;
+    setBusy(true); setError(''); setSaved(false);
+    try {
+      if (!await action()) throw new Error('The change was not saved. Please retry.');
+      setSaved(true);
+      if (destination) navigate(destination);
+    } catch (problem) { setError(problem.message); }
+    finally { setBusy(false); }
+  };
   const { id } =
     useParams();
 
@@ -69,8 +83,7 @@ function ClaimClosure() {
   }
 
   const saveClosure =
-    () => {
-      updateClosure(id, {
+    () => perform(() => updateClosure(id, {
         checklistCompleted:
           checklist,
 
@@ -80,14 +93,7 @@ function ClaimClosure() {
         rating,
 
         notes,
-      });
-
-      setSaved(true);
-
-      setTimeout(() => {
-        setSaved(false);
-      }, 2000);
-    };
+      }));
 
   const closeClaim =
     () => {
@@ -95,8 +101,9 @@ function ClaimClosure() {
         return;
       }
 
-      updateClaim(id, {
+      perform(() => updateClaim(id, {
         status: "Closed",
+        expectedNextStep: "Claim review is complete.",
 
         progress: 100,
 
@@ -107,7 +114,7 @@ function ClaimClosure() {
           feedbackRequested:
             feedbackRequested,
 
-          rating,
+          rating: rating || null,
 
           notes,
         },
@@ -128,25 +135,17 @@ function ClaimClosure() {
               "Claim closure was completed.",
           },
         ],
-      });
-
-      navigate(
-        `/claims/${id}`
-      );
+      }), `/claims/${id}`);
     };
 
   const handleArchive =
     () => {
-      archiveClaim(id);
-
-      navigate(
-        "/claims"
-      );
+      perform(() => archiveClaim(id), "/claims");
     };
 
   const handleReopen =
     () => {
-      reopenClaim(id);
+      perform(() => reopenClaim(id));
     };
 
   return (
@@ -211,6 +210,7 @@ function ClaimClosure() {
                 checked={
                   checklist
                 }
+                disabled={!staff || busy}
                 onChange={(event) =>
                   setChecklist(
                     event.target.checked
@@ -255,6 +255,7 @@ function ClaimClosure() {
                 checked={
                   feedbackRequested
                 }
+                disabled={!staff || busy}
                 onChange={(event) =>
                   setFeedbackRequested(
                     event.target.checked
@@ -283,6 +284,8 @@ function ClaimClosure() {
                     <button
                       key={item}
                       type="button"
+                      disabled={!staff || busy}
+                      aria-label={`Set rating to ${item} out of 5`}
                       className={
                         item <= rating
                           ? "rating-star selected"
@@ -328,6 +331,7 @@ function ClaimClosure() {
             </div>
 
             <textarea
+              disabled={!staff || busy}
               className="claim-closure-textarea"
               value={notes}
               onChange={(event) =>
@@ -341,11 +345,12 @@ function ClaimClosure() {
           </section>
 
 
+          {error && <p role="alert">{error}</p>}
           {saved && (
 
             <div className="claim-success">
 
-              ✓ Closure information saved.
+              ✓ Claim change saved.
 
             </div>
 
@@ -357,6 +362,7 @@ function ClaimClosure() {
           <div className="claim-closure-actions">
 
             <button
+              disabled={!staff || busy}
               className="claim-secondary-button"
               onClick={
                 saveClosure
@@ -371,7 +377,7 @@ function ClaimClosure() {
               <button
                 className="claim-primary-button"
                 disabled={
-                  !checklist
+                  !staff || busy || !checklist
                 }
                 onClick={
                   closeClaim
@@ -386,6 +392,7 @@ function ClaimClosure() {
               "Closed" && (
 
               <button
+                disabled={busy}
                 className="claim-danger-button"
                 onClick={
                   handleArchive
@@ -400,6 +407,7 @@ function ClaimClosure() {
               "Closed" && (
 
               <button
+                disabled={busy}
                 className="claim-secondary-button"
                 onClick={
                   handleReopen

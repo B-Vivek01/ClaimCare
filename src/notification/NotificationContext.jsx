@@ -1,85 +1,11 @@
+import { useRecords } from "../data/useRecords";
+import { useProfileSetting } from "../backend/useProfileSetting";
 import {
   createContext,
   useContext,
-  useEffect,
-  useState,
 } from "react";
 
 const NotificationContext = createContext();
-
-const initialNotifications = [
-  {
-    id: "NOT-1001",
-    title: "Claim Documents Required",
-    message:
-      "Additional documents are required for claim CLM-1001.",
-    type: "Claim",
-    channel: "In-App",
-    status: "Unread",
-    target: "/claims/CLM-1001",
-    createdAt: "2026-08-13T09:30:00",
-  },
-  {
-    id: "NOT-1002",
-    title: "Policy Renewal Reminder",
-    message:
-      "Your policy POL-2045 will expire in 30 days.",
-    type: "Policy",
-    channel: "Email",
-    status: "Read",
-    target: "/policies/POL-2045",
-    createdAt: "2026-08-12T15:30:00",
-  },
-  {
-    id: "NOT-1003",
-    title: "Claim Status Updated",
-    message:
-      "Claim CLM-1002 has moved to In Progress.",
-    type: "Claim",
-    channel: "Push",
-    status: "Unread",
-    target: "/claims/CLM-1002",
-    createdAt: "2026-08-12T11:20:00",
-  },
-  {
-    id: "NOT-1004",
-    title: "Payment Confirmation",
-    message:
-      "Payment for policy POL-2001 was successfully received.",
-    type: "Payment",
-    channel: "SMS",
-    status: "Read",
-    target: "/policies/POL-2001",
-    createdAt: "2026-08-11T17:10:00",
-  },
-];
-
-const initialReminders = [
-  {
-    id: "REM-001",
-    name: "Policy Renewal",
-    event: "Policy Expiry",
-    channel: "Email",
-    frequency: "30 days before",
-    enabled: true,
-  },
-  {
-    id: "REM-002",
-    name: "Claim SLA Warning",
-    event: "SLA Threshold",
-    channel: "In-App",
-    frequency: "When threshold is reached",
-    enabled: true,
-  },
-  {
-    id: "REM-003",
-    name: "Document Reminder",
-    event: "Missing Documents",
-    channel: "SMS",
-    frequency: "Every 3 days",
-    enabled: false,
-  },
-];
 
 const initialPreferences = {
   email: true,
@@ -100,84 +26,20 @@ const initialSettings = {
 };
 
 function NotificationProvider({ children }) {
-  const [notifications, setNotifications] =
-    useState(() => {
-      const stored = localStorage.getItem(
-        "claimcare_notifications"
-      );
+  const [notifications, setNotifications] = useRecords("notifications", true);
 
-      return stored
-        ? JSON.parse(stored)
-        : initialNotifications;
-    });
+  const [reminders, setReminders] = useRecords("reminders", true);
 
-  const [reminders, setReminders] =
-    useState(() => {
-      const stored = localStorage.getItem(
-        "claimcare_reminders"
-      );
+  const [preferences, setPreferences] = useProfileSetting("notification_preferences", initialPreferences);
 
-      return stored
-        ? JSON.parse(stored)
-        : initialReminders;
-    });
-
-  const [preferences, setPreferences] =
-    useState(() => {
-      const stored = localStorage.getItem(
-        "claimcare_notification_preferences"
-      );
-
-      return stored
-        ? JSON.parse(stored)
-        : initialPreferences;
-    });
-
-  const [settings, setSettings] =
-    useState(() => {
-      const stored = localStorage.getItem(
-        "claimcare_notification_settings"
-      );
-
-      return stored
-        ? JSON.parse(stored)
-        : initialSettings;
-    });
-
-  useEffect(() => {
-    localStorage.setItem(
-      "claimcare_notifications",
-      JSON.stringify(notifications)
-    );
-  }, [notifications]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "claimcare_reminders",
-      JSON.stringify(reminders)
-    );
-  }, [reminders]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "claimcare_notification_preferences",
-      JSON.stringify(preferences)
-    );
-  }, [preferences]);
-
-  useEffect(() => {
-    localStorage.setItem(
-      "claimcare_notification_settings",
-      JSON.stringify(settings)
-    );
-  }, [settings]);
+  const [settings, setSettings] = useProfileSetting("notification_settings", initialSettings);
 
   const unreadCount = notifications.filter(
     (item) => item.status === "Unread"
   ).length;
 
   const markAsRead = (id) => {
-    setNotifications((previous) =>
+    return setNotifications((previous) =>
       previous.map((item) =>
         item.id === id
           ? {
@@ -190,7 +52,7 @@ function NotificationProvider({ children }) {
   };
 
   const markAllAsRead = () => {
-    setNotifications((previous) =>
+    return setNotifications((previous) =>
       previous.map((item) => ({
         ...item,
         status: "Read",
@@ -199,7 +61,7 @@ function NotificationProvider({ children }) {
   };
 
   const deleteNotification = (id) => {
-    setNotifications((previous) =>
+    return setNotifications((previous) =>
       previous.filter(
         (item) => item.id !== id
       )

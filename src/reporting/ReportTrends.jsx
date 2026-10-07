@@ -1,36 +1,17 @@
+import { useClaims } from "../claim/ClaimContext";
 import { Link } from "react-router-dom";
 
 function ReportTrends() {
-  const months = [
-    {
-      month: "Mar",
-      value: 620,
-    },
-    {
-      month: "Apr",
-      value: 710,
-    },
-    {
-      month: "May",
-      value: 780,
-    },
-    {
-      month: "Jun",
-      value: 830,
-    },
-    {
-      month: "Jul",
-      value: 920,
-    },
-    {
-      month: "Aug",
-      value: 980,
-    },
-  ];
+  const { claims } = useClaims();
+  const months = Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(); date.setDate(1); date.setMonth(date.getMonth() - 5 + index);
+    const period = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    return { month: date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }), value: claims.filter(claim => String(claim.createdAt).startsWith(period)).length };
+  });
 
   const max =
     Math.max(
-      ...months.map(
+      1, ...months.map(
         (item) => item.value
       )
     );
